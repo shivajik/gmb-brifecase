@@ -4,12 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown, BarChart3, Star, MapPin, FileText, Megaphone, Users, BookOpen, HelpCircle, Building2, ShoppingBag, Stethoscope, Scale } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const productLinks = [
-  { icon: MapPin, title: "GBP Management", desc: "Manage your Google Business Profiles", href: "/features" },
-  { icon: Star, title: "Review Monitoring", desc: "Track and respond to reviews", href: "/features" },
-  { icon: BarChart3, title: "Analytics & Reporting", desc: "Insights to grow your business", href: "/features" },
-  { icon: Megaphone, title: "Posts & Updates", desc: "Publish directly to Google", href: "/features" },
-  { icon: FileText, title: "Listings Management", desc: "Keep your info consistent everywhere", href: "/features" },
+const platformLinks = [
+  { icon: MapPin, title: "GBP Management", desc: "Manage all your Google Business Profiles from one dashboard", href: "/features" },
+  { icon: BarChart3, title: "Analytics & Reporting", desc: "Insights and data to grow your local business", href: "/features" },
+  { icon: Users, title: "Multi-Location", desc: "Scale operations across all your locations", href: "/features" },
+];
+
+const productCards = [
+  { icon: Star, title: "Review Monitoring", desc: "Track, respond to, and generate reviews across 200+ sites.", href: "/features" },
+  { icon: FileText, title: "Listings Management", desc: "Keep your business info accurate and consistent everywhere.", href: "/features" },
+  { icon: Megaphone, title: "Posts & Updates", desc: "Create, schedule, and publish posts directly to Google.", href: "/features" },
+  { icon: BarChart3, title: "Rank Tracking", desc: "Monitor your local search rankings and track competitors.", href: "/features" },
+  { icon: MapPin, title: "Local SEO", desc: "Optimize your presence to rank higher in local search results.", href: "/features" },
+  { icon: BookOpen, title: "Reporting", desc: "Generate white-label reports for clients and stakeholders.", href: "/features" },
 ];
 
 const solutionLinks = [
@@ -25,7 +32,61 @@ const resourceLinks = [
   { icon: Users, title: "Community", desc: "Connect with other users", href: "/about" },
 ];
 
-function MegaPanel({ links, onClose }: { links: typeof productLinks; onClose: () => void }) {
+function ProductsMegaPanel({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="absolute left-0 top-full w-screen bg-popover border-b border-border shadow-lg z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
+      <div className="container mx-auto max-w-6xl py-8 px-4">
+        <div className="grid grid-cols-[280px_1fr] gap-8">
+          {/* Platform column */}
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Platform</div>
+            <div className="space-y-1">
+              {platformLinks.map((link) => (
+                <Link
+                  key={link.title}
+                  to={link.href}
+                  onClick={onClose}
+                  className="flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-accent"
+                >
+                  <div className="mt-0.5 rounded-md bg-primary/10 p-2">
+                    <link.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm text-foreground">{link.title}</div>
+                    <div className="text-xs text-muted-foreground leading-relaxed">{link.desc}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Products grid */}
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Products</div>
+            <div className="grid grid-cols-3 gap-2">
+              {productCards.map((card) => (
+                <Link
+                  key={card.title}
+                  to={card.href}
+                  onClick={onClose}
+                  className="group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-md"
+                >
+                  <div className="mb-3 rounded-md bg-primary/10 p-2 w-fit">
+                    <card.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="font-medium text-sm text-foreground mb-1">{card.title}</div>
+                  <div className="text-xs text-muted-foreground leading-relaxed">{card.desc}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MegaPanel({ links, onClose }: { links: typeof solutionLinks; onClose: () => void }) {
   return (
     <div className="absolute left-0 top-full w-screen bg-popover border-b border-border shadow-lg z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
       <div className="container mx-auto max-w-6xl py-6 px-4">
@@ -65,8 +126,7 @@ export function Header() {
     { label: "About", href: "/about" },
   ];
 
-  const megaMenus: Record<string, typeof productLinks> = {
-    products: productLinks,
+  const megaMenus: Record<string, typeof solutionLinks> = {
     solutions: solutionLinks,
     resources: resourceLinks,
   };
@@ -132,7 +192,10 @@ export function Header() {
       </div>
 
       {/* Mega menu panels */}
-      {activeMenu && megaMenus[activeMenu] && (
+      {activeMenu === "products" && (
+        <ProductsMegaPanel onClose={() => setActiveMenu(null)} />
+      )}
+      {activeMenu && activeMenu !== "products" && megaMenus[activeMenu] && (
         <MegaPanel links={megaMenus[activeMenu]} onClose={() => setActiveMenu(null)} />
       )}
 
