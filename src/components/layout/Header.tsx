@@ -34,9 +34,9 @@ const resourceLinks = [
 
 function ProductsMegaPanel({ onClose }: { onClose: () => void }) {
   return (
-    <div className="absolute left-0 top-full w-screen bg-popover border-b border-border shadow-lg z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
-      <div className="container mx-auto max-w-6xl py-8 px-4">
-        <div className="grid grid-cols-[280px_1fr] gap-8">
+    <div className="absolute left-1/2 -translate-x-1/2 top-full w-[960px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
+      <div className="py-8 px-6">
+        <div className="grid grid-cols-[240px_1px_1fr] gap-6">
           {/* Platform column */}
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Platform</div>
@@ -60,6 +60,9 @@ function ProductsMegaPanel({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
+          {/* Divider */}
+          <div className="bg-border" />
+
           {/* Products grid */}
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Products</div>
@@ -79,6 +82,11 @@ function ProductsMegaPanel({ onClose }: { onClose: () => void }) {
                 </Link>
               ))}
             </div>
+            <div className="mt-4 pt-4 border-t border-border">
+              <Link to="/features" onClick={onClose} className="text-sm font-medium text-primary hover:underline">
+                See all Products →
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -86,17 +94,18 @@ function ProductsMegaPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-function MegaPanel({ links, onClose }: { links: typeof solutionLinks; onClose: () => void }) {
+function MegaPanel({ links, title, onClose }: { links: typeof solutionLinks; title: string; onClose: () => void }) {
   return (
-    <div className="absolute left-0 top-full w-screen bg-popover border-b border-border shadow-lg z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
-      <div className="container mx-auto max-w-6xl py-6 px-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+    <div className="absolute left-1/2 -translate-x-1/2 top-full w-[640px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
+      <div className="py-6 px-6">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">{title}</div>
+        <div className="grid grid-cols-2 gap-2">
           {links.map((link) => (
             <Link
               key={link.title}
               to={link.href}
               onClick={onClose}
-              className="flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-accent"
+              className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-md"
             >
               <div className="mt-0.5 rounded-md bg-primary/10 p-2">
                 <link.icon className="h-5 w-5 text-primary" />
@@ -196,7 +205,7 @@ export function Header() {
         <ProductsMegaPanel onClose={() => setActiveMenu(null)} />
       )}
       {activeMenu && activeMenu !== "products" && megaMenus[activeMenu] && (
-        <MegaPanel links={megaMenus[activeMenu]} onClose={() => setActiveMenu(null)} />
+        <MegaPanel links={megaMenus[activeMenu]} title={activeMenu === "solutions" ? "Solutions" : "Resources"} onClose={() => setActiveMenu(null)} />
       )}
 
       {/* Mobile menu */}
