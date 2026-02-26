@@ -34,7 +34,7 @@ const resourceLinks = [
 
 function ProductsMegaPanel({ onClose }: { onClose: () => void }) {
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full w-[960px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
+    <div className="absolute left-0 top-full mt-2 w-[960px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
       <div className="py-8 px-6">
         <div className="grid grid-cols-[240px_1px_1fr] gap-6">
           {/* Platform column */}
@@ -96,7 +96,7 @@ function ProductsMegaPanel({ onClose }: { onClose: () => void }) {
 
 function MegaPanel({ links, title, onClose }: { links: typeof solutionLinks; title: string; onClose: () => void }) {
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full w-[640px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
+    <div className="absolute left-0 top-full mt-2 w-[640px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
       <div className="py-6 px-6">
         <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">{title}</div>
         <div className="grid grid-cols-2 gap-2">
@@ -155,7 +155,7 @@ export function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1 relative">
           {navItems.map((item) =>
             item.href ? (
               <Link
@@ -182,6 +182,14 @@ export function Header() {
               </button>
             )
           )}
+
+          {/* Mega menu panels */}
+          {activeMenu === "products" && (
+            <ProductsMegaPanel onClose={() => setActiveMenu(null)} />
+          )}
+          {activeMenu && activeMenu !== "products" && megaMenus[activeMenu] && (
+            <MegaPanel links={megaMenus[activeMenu]} title={activeMenu === "solutions" ? "Solutions" : "Resources"} onClose={() => setActiveMenu(null)} />
+          )}
         </nav>
 
         {/* CTA Buttons */}
@@ -199,14 +207,6 @@ export function Header() {
           {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
-
-      {/* Mega menu panels */}
-      {activeMenu === "products" && (
-        <ProductsMegaPanel onClose={() => setActiveMenu(null)} />
-      )}
-      {activeMenu && activeMenu !== "products" && megaMenus[activeMenu] && (
-        <MegaPanel links={megaMenus[activeMenu]} title={activeMenu === "solutions" ? "Solutions" : "Resources"} onClose={() => setActiveMenu(null)} />
-      )}
 
       {/* Mobile menu */}
       {mobileOpen && (
