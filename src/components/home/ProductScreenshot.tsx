@@ -3,23 +3,26 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Star, Phone, Eye, TrendingUp } from "lucide-react";
 
-export function ProductScreenshot() {
+interface ProductScreenshotProps {
+  title?: string;
+  subtitle?: string;
+}
+
+export function ProductScreenshot({
+  title = "Your Command Center for Local Marketing",
+  subtitle = "See everything at a glance — from reviews and rankings to posts and performance.",
+}: ProductScreenshotProps) {
   const { ref, isVisible } = useScrollAnimation();
 
   return (
     <section ref={ref} className="py-20 bg-secondary">
       <div className="container mx-auto max-w-7xl px-4">
         <div className={cn("text-center mb-12 opacity-0", isVisible && "animate-fade-in")}>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Your Command Center for Local Marketing
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            See everything at a glance — from reviews and rankings to posts and performance.
-          </p>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{title}</h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{subtitle}</p>
         </div>
         <div className="relative max-w-4xl mx-auto">
           <div className={cn("rounded-2xl bg-card border border-border shadow-2xl p-8 opacity-0", isVisible && "animate-fade-in")} style={{ animationDelay: "200ms" }}>
-            {/* Mock UI */}
             <div className="flex items-center gap-2 mb-6">
               <div className="h-3 w-3 rounded-full bg-destructive/60" />
               <div className="h-3 w-3 rounded-full bg-yellow-400/60" />
@@ -47,7 +50,6 @@ export function ProductScreenshot() {
             </div>
           </div>
 
-          {/* Floating stat cards */}
           {isVisible && (
             <>
               <motion.div

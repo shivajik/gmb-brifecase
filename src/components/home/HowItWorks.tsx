@@ -8,22 +8,25 @@ const steps = [
   { icon: TrendingUp, title: "Grow & Track Results", desc: "Watch your visibility climb with detailed analytics and actionable insights." },
 ];
 
-export function HowItWorks() {
+interface HowItWorksProps {
+  title?: string;
+  subtitle?: string;
+}
+
+export function HowItWorks({
+  title = "How It Works",
+  subtitle = "Get started in minutes with three simple steps.",
+}: HowItWorksProps) {
   const { ref, isVisible } = useScrollAnimation();
 
   return (
     <section ref={ref} className="py-20 bg-secondary">
       <div className="container mx-auto max-w-7xl px-4">
         <div className={cn("text-center mb-14 opacity-0", isVisible && "animate-fade-in")}>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            How It Works
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Get started in minutes with three simple steps.
-          </p>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{title}</h2>
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto">{subtitle}</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-          {/* Connector line */}
           <div className="hidden md:block absolute top-16 left-[16.5%] right-[16.5%] h-0.5 bg-border" />
           {steps.map((step, i) => (
             <div

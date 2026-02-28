@@ -1,13 +1,17 @@
+interface LogoTickerProps {
+  heading?: string;
+}
+
 const logos = [
   "Google", "Yelp", "Facebook", "TripAdvisor", "Apple Maps",
   "Bing", "Foursquare", "Trustpilot", "BBB", "Citysearch",
 ];
 
-export function LogoTicker() {
+export function LogoTicker({ heading = "Trusted by businesses managing their presence on" }: LogoTickerProps) {
   return (
     <section className="py-10 border-b border-border overflow-hidden bg-muted/50">
       <div className="container mx-auto max-w-7xl px-4 mb-4">
-        <p className="text-center text-sm font-medium text-muted-foreground">Trusted by businesses managing their presence on</p>
+        <p className="text-center text-sm font-medium text-muted-foreground">{heading}</p>
       </div>
       <div className="relative">
         <div className="flex animate-marquee gap-12 whitespace-nowrap">

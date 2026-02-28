@@ -3,12 +3,33 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Star, Users, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
-export function HeroSection() {
+interface HeroSectionProps {
+  badge?: string;
+  title?: string;
+  subtitle?: string;
+  ctaPrimaryText?: string;
+  ctaPrimaryLink?: string;
+  ctaSecondaryText?: string;
+  ctaSecondaryLink?: string;
+}
+
+export function HeroSection({
+  badge = "Trusted by 10,000+ businesses",
+  title,
+  subtitle = "Optimize your Google Business Profile, monitor reviews, manage listings, and get actionable insights — all from one powerful dashboard.",
+  ctaPrimaryText = "Start Free Trial",
+  ctaPrimaryLink = "/pricing",
+  ctaSecondaryText = "Book a Demo",
+  ctaSecondaryLink = "/contact",
+}: HeroSectionProps) {
+  const titleContent = title || (
+    <>The All-in-One Platform to{" "}<span className="text-primary">Manage & Grow</span> Your Local Business</>
+  );
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-secondary via-background to-accent py-20 lg:py-28">
       <div className="container mx-auto max-w-7xl px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left content */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -17,23 +38,20 @@ export function HeroSection() {
           >
             <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
               <CheckCircle className="h-4 w-4" />
-              Trusted by 10,000+ businesses
+              {badge}
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]">
-              The All-in-One Platform to{" "}
-              <span className="text-primary">Manage & Grow</span> Your Local Business
+              {titleContent}
             </h1>
-            <p className="text-lg text-muted-foreground max-w-lg">
-              Optimize your Google Business Profile, monitor reviews, manage listings, and get actionable insights — all from one powerful dashboard.
-            </p>
+            <p className="text-lg text-muted-foreground max-w-lg">{subtitle}</p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button size="lg" asChild className="text-base">
-                <Link to="/pricing">
-                  Start Free Trial <ArrowRight className="ml-1 h-4 w-4" />
+                <Link to={ctaPrimaryLink}>
+                  {ctaPrimaryText} <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
               <Button variant="outline" size="lg" asChild className="text-base">
-                <Link to="/contact">Book a Demo</Link>
+                <Link to={ctaSecondaryLink}>{ctaSecondaryText}</Link>
               </Button>
             </div>
             <div className="flex items-center gap-6 pt-2">
@@ -52,7 +70,6 @@ export function HeroSection() {
             </div>
           </motion.div>
 
-          {/* Right mockup */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -60,7 +77,6 @@ export function HeroSection() {
             className="relative"
           >
             <div className="relative rounded-2xl bg-card border border-border shadow-2xl p-6 mx-auto max-w-lg">
-              {/* Mock dashboard */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="font-semibold text-card-foreground">Dashboard Overview</div>
@@ -87,7 +103,6 @@ export function HeroSection() {
               </div>
             </div>
 
-            {/* Floating cards */}
             <motion.div
               animate={{ y: [0, -8, 0] }}
               transition={{ repeat: Infinity, duration: 3 }}

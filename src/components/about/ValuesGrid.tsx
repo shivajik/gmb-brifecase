@@ -11,15 +11,23 @@ const values = [
   { icon: Globe, title: "Impact", desc: "Empowering local businesses to compete and thrive globally." },
 ];
 
-export function ValuesGrid() {
+interface ValuesGridProps {
+  sectionTitle?: string;
+  sectionSubtitle?: string;
+}
+
+export function ValuesGrid({
+  sectionTitle = "Our Values",
+  sectionSubtitle = "What drives everything we do.",
+}: ValuesGridProps) {
   const { ref, isVisible } = useScrollAnimation();
 
   return (
     <section ref={ref} className="py-20 bg-background">
       <div className="container mx-auto max-w-7xl px-4">
         <div className={cn("text-center mb-12 opacity-0", isVisible && "animate-fade-in")}>
-          <h2 className="text-3xl font-bold text-foreground mb-4">Our Values</h2>
-          <p className="text-muted-foreground">What drives everything we do.</p>
+          <h2 className="text-3xl font-bold text-foreground mb-4">{sectionTitle}</h2>
+          <p className="text-muted-foreground">{sectionSubtitle}</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {values.map((v, i) => (

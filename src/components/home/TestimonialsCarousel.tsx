@@ -11,7 +11,11 @@ const testimonials = [
   { name: "David Kim", company: "Kim Legal Associates", quote: "The competitor analysis feature helped us identify gaps and outrank competing firms in our area.", rating: 5, avatar: "DK" },
 ];
 
-export function TestimonialsCarousel() {
+interface TestimonialsCarouselProps {
+  title?: string;
+}
+
+export function TestimonialsCarousel({ title = "What Our Customers Say" }: TestimonialsCarouselProps) {
   const [current, setCurrent] = useState(0);
   const { ref, isVisible } = useScrollAnimation();
 
@@ -23,7 +27,7 @@ export function TestimonialsCarousel() {
     <section ref={ref} className="py-20 bg-background">
       <div className="container mx-auto max-w-4xl px-4">
         <div className={cn("text-center mb-12 opacity-0", isVisible && "animate-fade-in")}>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">What Our Customers Say</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{title}</h2>
         </div>
         <div className={cn("relative bg-card rounded-2xl border border-border p-8 md:p-12 text-center opacity-0", isVisible && "animate-fade-in")} style={{ animationDelay: "200ms" }}>
           <div className="flex justify-center gap-1 mb-6">
@@ -44,7 +48,6 @@ export function TestimonialsCarousel() {
             </div>
           </div>
 
-          {/* Nav */}
           <div className="flex items-center justify-center gap-4 mt-8">
             <Button variant="outline" size="icon" onClick={prev} className="h-9 w-9 rounded-full">
               <ChevronLeft className="h-4 w-4" />

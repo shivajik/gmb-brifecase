@@ -31,14 +31,22 @@ const plans = [
   },
 ];
 
-export function PricingPlans() {
+interface PricingPlansProps {
+  title?: string;
+  subtitle?: string;
+}
+
+export function PricingPlans({
+  title = "Simple, Transparent Pricing",
+  subtitle = "Start free. Scale as you grow. No hidden fees.",
+}: PricingPlansProps) {
   const [annual, setAnnual] = useState(true);
 
   return (
     <section className="py-20 bg-gradient-to-br from-secondary via-background to-accent">
       <div className="container mx-auto max-w-7xl px-4 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Simple, Transparent Pricing</h1>
-        <p className="text-lg text-muted-foreground mb-8">Start free. Scale as you grow. No hidden fees.</p>
+        <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">{title}</h1>
+        <p className="text-lg text-muted-foreground mb-8">{subtitle}</p>
 
         <div className="inline-flex items-center gap-3 bg-muted rounded-full p-1 mb-12">
           <button onClick={() => setAnnual(false)} className={cn("px-4 py-2 rounded-full text-sm font-medium transition-colors", !annual ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>

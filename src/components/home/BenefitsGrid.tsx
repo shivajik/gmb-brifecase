@@ -11,17 +11,23 @@ const benefits = [
   { icon: Search, title: "Competitor Analysis", desc: "See how you stack up against competitors in your area." },
 ];
 
-export function BenefitsGrid() {
+interface BenefitsGridProps {
+  title?: string;
+  subtitle?: string;
+}
+
+export function BenefitsGrid({
+  title = "Why Choose GMB Briefcase?",
+  subtitle = "Built for agencies and businesses that take local marketing seriously.",
+}: BenefitsGridProps) {
   const { ref, isVisible } = useScrollAnimation();
 
   return (
     <section ref={ref} className="py-20 bg-background">
       <div className="container mx-auto max-w-7xl px-4">
         <div className={cn("text-center mb-12 opacity-0", isVisible && "animate-fade-in")}>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Why Choose GMB Briefcase?</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Built for agencies and businesses that take local marketing seriously.
-          </p>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{title}</h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{subtitle}</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {benefits.map((b, i) => (
