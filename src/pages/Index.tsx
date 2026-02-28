@@ -1,4 +1,4 @@
-import { Layout } from "@/components/layout/Layout";
+import { CmsPageWrapper } from "@/components/cms/CmsPageWrapper";
 import { HeroSection } from "@/components/home/HeroSection";
 import { LogoTicker } from "@/components/home/LogoTicker";
 import { FeaturesCarousel } from "@/components/home/FeaturesCarousel";
@@ -9,8 +9,8 @@ import { TestimonialsCarousel } from "@/components/home/TestimonialsCarousel";
 import { StatsBar } from "@/components/home/StatsBar";
 import { CTABanner } from "@/components/home/CTABanner";
 
-const Index = () => (
-  <Layout>
+const HomeFallback = () => (
+  <>
     <HeroSection />
     <LogoTicker />
     <FeaturesCarousel />
@@ -20,7 +20,11 @@ const Index = () => (
     <TestimonialsCarousel />
     <StatsBar />
     <CTABanner />
-  </Layout>
+  </>
+);
+
+const Index = () => (
+  <CmsPageWrapper slug="home" fallback={<HomeFallback />} />
 );
 
 export default Index;

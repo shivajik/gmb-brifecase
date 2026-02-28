@@ -1,4 +1,4 @@
-import { Layout } from "@/components/layout/Layout";
+import { CmsPageWrapper } from "@/components/cms/CmsPageWrapper";
 import { CTABanner } from "@/components/home/CTABanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Star, FileText, BarChart3, Megaphone, CheckCircle } from "lucide-react";
@@ -48,11 +48,11 @@ const features = [
   },
 ];
 
-export default function Features() {
+function FeaturesFallback() {
   const { ref, isVisible } = useScrollAnimation();
 
   return (
-    <Layout>
+    <>
       {/* Hero */}
       <section className="py-20 bg-gradient-to-br from-secondary via-background to-accent">
         <div className="container mx-auto max-w-7xl px-4 text-center">
@@ -118,6 +118,10 @@ export default function Features() {
       </section>
 
       <CTABanner />
-    </Layout>
+    </>
   );
+}
+
+export default function Features() {
+  return <CmsPageWrapper slug="features" fallback={<FeaturesFallback />} />;
 }

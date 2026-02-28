@@ -1,12 +1,12 @@
-import { Layout } from "@/components/layout/Layout";
+import { CmsPageWrapper } from "@/components/cms/CmsPageWrapper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 
-export default function Contact() {
+function ContactFallback() {
   return (
-    <Layout>
+    <>
       <section className="py-20 bg-gradient-to-br from-secondary via-background to-accent">
         <div className="container mx-auto max-w-7xl px-4">
           <div className="text-center mb-14">
@@ -75,6 +75,10 @@ export default function Contact() {
           </div>
         </div>
       </section>
-    </Layout>
+    </>
   );
+}
+
+export default function Contact() {
+  return <CmsPageWrapper slug="contact" fallback={<ContactFallback />} />;
 }
