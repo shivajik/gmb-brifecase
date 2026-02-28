@@ -16,6 +16,8 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import PageList from "./pages/admin/PageList";
 import PageEditor from "./pages/admin/PageEditor";
+import MenuList from "./pages/admin/MenuList";
+import MenuEditor from "./pages/admin/MenuEditor";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +51,8 @@ const App = () => (
             <Route path="pages" element={<PageList />} />
             <Route path="pages/new" element={<PageEditor />} />
             <Route path="pages/:id" element={<PageEditor />} />
+            <Route path="menus" element={<MenuList />} />
+            <Route path="menus/:id" element={<MenuEditor />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
