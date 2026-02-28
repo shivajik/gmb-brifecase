@@ -145,21 +145,60 @@ Deno.serve(async (req) => {
       await db.from("menu_items").delete().eq("menu_id", body.menu_id);
 
       if (items.length > 0) {
-        const rows = items.map((item: Record<string, unknown>, idx: number) => ({
+        // First pass: insert top-level items (no parent) to get their IDs
+        const topLevel = items
+          .map((item: Record<string, unknown>, idx: number) => ({ ...item, _origIdx: idx }))
+          .filter((item: Record<string, unknown>) => !item.parent_id && !item.parent_index && item.parent_index !== 0);
+
+        const topRows = topLevel.map((item: Record<string, unknown>, _: number) => ({
           menu_id: body.menu_id,
           label: item.label,
           url: item.url || null,
           page_id: item.page_id || null,
-          parent_id: item.parent_id || null,
+          parent_id: null,
           target: item.target || "_self",
           css_class: item.css_class || null,
           icon: item.icon || null,
           description: item.description || null,
-          sort_order: idx,
+          sort_order: item._origIdx as number,
         }));
 
-        const { error } = await db.from("menu_items").insert(rows);
-        if (error) throw error;
+        let insertedTopIds: string[] = [];
+        if (topRows.length > 0) {
+          const { data: topData, error: topErr } = await db.from("menu_items").insert(topRows).select("id, sort_order");
+          if (topErr) throw topErr;
+          // Map sort_order -> id for parent lookup
+          const sortToId: Record<number, string> = {};
+          for (const row of topData || []) sortToId[row.sort_order] = row.id;
+          insertedTopIds = (topData || []).map((r: { id: string }) => r.id);
+
+          // Second pass: insert children with resolved parent_id
+          const children = items
+            .map((item: Record<string, unknown>, idx: number) => ({ ...item, _origIdx: idx }))
+            .filter((item: Record<string, unknown>) => item.parent_id || item.parent_index !== undefined && item.parent_index !== null);
+
+          if (children.length > 0) {
+            const childRows = children.map((item: Record<string, unknown>) => {
+              // parent_index refers to the original index of the parent in the items array
+              const parentIdx = item.parent_index as number | undefined;
+              const resolvedParent = parentIdx !== undefined && parentIdx !== null ? sortToId[parentIdx] : (item.parent_id as string);
+              return {
+                menu_id: body.menu_id,
+                label: item.label,
+                url: item.url || null,
+                page_id: item.page_id || null,
+                parent_id: resolvedParent || null,
+                target: item.target || "_self",
+                css_class: item.css_class || null,
+                icon: item.icon || null,
+                description: item.description || null,
+                sort_order: item._origIdx as number,
+              };
+            });
+            const { error: childErr } = await db.from("menu_items").insert(childRows);
+            if (childErr) throw childErr;
+          }
+        }
       }
 
       // Return fresh items
