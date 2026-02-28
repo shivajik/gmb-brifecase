@@ -1,75 +1,89 @@
 
-# GMB Briefcase — Marketing Website
 
-A polished, dynamic marketing website for gmbbriefcase.com inspired by BrightLocal and Birdeye, with a fresh green color scheme, mega menus, carousels, and smooth animations.
+## CMS with Custom Authentication - Implementation Plan
 
----
-
-## 🎨 Design System
-- **Color palette**: Fresh greens (primary), dark navy text, light mint/green backgrounds for sections, white cards
-- **Typography**: Clean, modern sans-serif with large bold headings
-- **Border radius**: Rounded, friendly feel
-- **Animations**: Fade-in on scroll, hover scale effects, smooth slide transitions on carousels
+### Prerequisite: Connect External Supabase
+You need to connect your Supabase project first. I'll prompt you to do this before any database work.
 
 ---
 
-## 📄 Pages & Sections
+### Phase 1: Database Schema & Custom Auth System
 
-### 1. **Header / Navigation**
-- Sticky top navigation bar with GMB Briefcase logo
-- **Mega menu** dropdowns for "Products/Features", "Solutions", and "Resources"
-  - Each mega menu panel shows categorized links with icons and short descriptions
-- Right side: "Book a Demo" (outline) + "Start Free Trial" (green CTA button)
-- Mobile: hamburger menu with accordion-style dropdowns
+**Database tables via Supabase migrations:**
 
-### 2. **Homepage**
-- **Hero Section**: Large headline ("The All-in-One Platform to Manage & Grow Your Local Business"), subtitle, two CTA buttons, trust badges (star rating, review count), and an animated product screenshot/mockup
-- **Logo Ticker**: Auto-scrolling carousel of trusted brand/partner logos
-- **Features Carousel**: Horizontal scrolling cards (like Birdeye) showcasing key features — GBP Management, Review Monitoring, Listings, Analytics, Posts & Updates — each with an icon, title, and short description
-- **How It Works**: 3-step visual section with numbered steps and illustrations, fade-in animations on scroll
-- **Key Benefits Grid**: 3-column card grid with icons — "Save Time", "Boost Rankings", "Manage Reviews", "Multi-Location Support", "AI-Powered Insights", "Competitor Analysis"
-- **Product Screenshot Section**: Large centered product UI mockup with floating stat cards (animated in) showing metrics like "4.8★ Average Rating" and "+32% More Calls"
-- **Testimonials Carousel**: Customer quotes in a sliding carousel with photo, name, company, and star rating
-- **Stats/Social Proof Bar**: Animated counters — "10,000+ Businesses", "5M+ Reviews Managed", "50+ Integrations"
-- **CTA Banner**: Full-width green gradient section with "Ready to grow your business?" headline and CTA button
-- **Footer**: Multi-column footer with navigation links, social icons, newsletter signup, and legal links
+- `cms_users` — id (uuid), email (unique), password_hash (text), name, created_at, updated_at
+- `cms_sessions` — id (uuid), user_id (FK), token (unique), expires_at, created_at
+- `cms_user_roles` — id, user_id (FK to cms_users), role (enum: admin/editor/viewer)
+- `pages` — id, slug, title, content (jsonb), status (draft/published), template, meta_title, meta_description, meta_keywords, og_image, author_id, created_at, updated_at, published_at
+- `menus` — id, name, location (header/footer/sidebar)
+- `menu_items` — id, menu_id (FK), label, url, page_id (nullable FK), parent_id (self-ref), sort_order, target, css_class
+- `site_settings` — id, key (unique), value (jsonb), group (appearance/general/seo/scripts)
+- `widgets` — id, location, widget_type, title, content (jsonb), sort_order, active (boolean)
+- `media` — id, filename, url, alt_text, mime_type, size, uploaded_by, created_at
 
-### 3. **Features Page**
-- Hero with headline and subtitle
-- Tab-based feature showcase (GBP Management, Reviews, Listings, Analytics, Reporting) — clicking a tab reveals a detailed section with screenshot and bullet points
-- Each feature section with alternating left/right layout (image + text)
+**Edge functions for custom auth:**
+- `cms-auth/login` — validates email/password (bcrypt), creates session token, returns JWT
+- `cms-auth/register` — creates user with hashed password (admin-only action)
+- `cms-auth/logout` — invalidates session
+- `cms-auth/verify` — validates session token, returns user + role
 
-### 4. **Pricing Page**
-- Toggle for Monthly/Annual billing
-- 3-tier pricing cards (Starter, Professional, Enterprise) with feature comparison list
-- Highlighted "Most Popular" card
-- FAQ accordion below
-
-### 5. **About Page**
-- Company mission statement with hero
-- Team values section with icon cards
-- Stats bar (years in business, customers, etc.)
-- CTA to contact or start trial
-
-### 6. **Contact Page**
-- Contact form (Name, Email, Company, Message)
-- Company info sidebar with email, phone
-- Optional calendar/demo booking CTA
+**RLS:** All CMS tables use RLS policies that check session validity via a security definer function querying `cms_sessions` and `cms_user_roles`.
 
 ---
 
-## ✨ Animations & Interactions
-- Scroll-triggered fade-in and slide-up for all sections
-- Hover scale effect on cards and buttons
-- Smooth mega menu open/close transitions
-- Auto-playing carousels with navigation arrows and dots
-- Animated number counters in the stats section
-- Underline animation on nav links
+### Phase 2: Admin Dashboard Shell
+- `/admin/login` — custom login page (email + password form)
+- `/admin` — protected layout with sidebar navigation
+- Auth context provider that stores JWT in memory (not localStorage for security), with httpOnly cookie option via edge function
+- Route guard component checking auth state
+- Sidebar: Dashboard, Pages, Menus, Widgets, Media, Appearance, Settings, Users
+
+### Phase 3: Page Management
+- Page list with search, status filter, bulk actions
+- Page editor: title, slug (auto-gen), content blocks (JSON-based), status toggle
+- Per-page SEO panel: meta title, description, keywords, OG image upload
+- Draft/publish/schedule workflow
+- Revision history (optional)
+
+### Phase 4: Menu Manager
+- CRUD menus assigned to locations
+- Drag-and-drop menu item ordering
+- Nested items support (parent/child)
+- Link to pages or external URLs
+
+### Phase 5: Widgets & Media
+- Widget CRUD by location (header bar, footer columns, sidebar)
+- Widget types: text/HTML, link list, social icons, contact info
+- Media library with upload to Supabase Storage, browse, delete
+
+### Phase 6: Appearance & Settings
+- Appearance: colors, fonts, logo/favicon upload
+- General settings: site title, tagline, default SEO
+- Script injection: analytics, custom head/body scripts
+- All stored in `site_settings` key-value table
+
+### Phase 7: User Management
+- List CMS users with roles
+- Create/invite users (admin only)
+- Assign/change roles
+- Deactivate accounts
+
+### Phase 8: Frontend Integration
+- Dynamic page rendering from DB content
+- Dynamic menu rendering
+- Site settings applied globally (colors, logo, meta tags)
+- Per-page SEO `<head>` tags
 
 ---
 
-## 📱 Responsive Design
-- Fully responsive across desktop, tablet, and mobile
-- Mega menu collapses to accordion on mobile
-- Carousels adapt to show fewer items on smaller screens
-- Stacked layouts for feature grids on mobile
+### Technical Details
+
+- **Auth flow**: Edge function hashes passwords with bcrypt, issues JWT tokens stored in-memory on the client with refresh via httpOnly cookie. No Supabase Auth involved.
+- **Content model**: Page content stored as JSON blocks for flexibility (headings, text, images, CTAs).
+- **Admin UI**: Built with existing shadcn/ui components (tables, forms, dialogs, tabs).
+- **Data fetching**: React Query for all admin CRUD operations.
+- **Security**: All mutations go through edge functions that validate the session token. RLS as a secondary defense layer.
+
+### Build Order
+Phase 1 first (requires Supabase connection). Each phase is 3-6 iterations. We start by connecting Supabase.
+
