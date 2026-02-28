@@ -2,3 +2,6 @@ project_id = "otzjzbwoetkhlpxvgnag"
 
 [functions.cms-auth]
 verify_jwt = false
+
+[functions.cms-pages]
+verify_jwt = false
