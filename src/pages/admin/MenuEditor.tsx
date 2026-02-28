@@ -147,6 +147,7 @@ export default function MenuEditor() {
       await saveItems.mutateAsync({
         menu_id: id,
         items: items.map((item) => ({
+          id: item.id,
           label: item.label,
           url: item.url || null,
           page_id: item.page_id,
