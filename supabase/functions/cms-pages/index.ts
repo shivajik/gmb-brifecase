@@ -79,11 +79,21 @@ Deno.serve(async (req) => {
       return json({ pages: data });
     }
 
-    // POST - create or get single
+    // POST - list, get single, or create
     if (req.method === "POST") {
       const body = await req.json();
 
-      // If action=get, fetch single page
+      // List pages
+      if (body.action === "list") {
+        let query = db.from("pages").select("id, title, slug, status, template, author_id, created_at, updated_at, published_at, meta_title, meta_description").order("updated_at", { ascending: false });
+        if (body.status) query = query.eq("status", body.status);
+        if (body.search) query = query.or(`title.ilike.%${body.search}%,slug.ilike.%${body.search}%`);
+        const { data, error } = await query;
+        if (error) throw error;
+        return json({ pages: data });
+      }
+
+      // Fetch single page
       if (body.action === "get") {
         const { data, error } = await db.from("pages").select("*").eq("id", body.id).single();
         if (error) return json({ error: "Page not found" }, 404);

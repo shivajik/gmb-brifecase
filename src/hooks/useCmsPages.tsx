@@ -36,12 +36,9 @@ export function useCmsPages(filters?: { status?: string; search?: string }) {
   return useQuery({
     queryKey: ["cms-pages", filters],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filters?.status) params.set("status", filters.status);
-      if (filters?.search) params.set("search", filters.search);
-
-      const { data, error } = await supabase.functions.invoke(`cms-pages?${params}`, {
-        method: "GET",
+      const { data, error } = await supabase.functions.invoke("cms-pages", {
+        method: "POST",
+        body: { action: "list", status: filters?.status, search: filters?.search },
         headers: authHeaders(token),
       });
       if (error) throw error;
