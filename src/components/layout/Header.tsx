@@ -1,107 +1,96 @@
 import { useState, useMemo } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ChevronDown, BarChart3, Star, MapPin, FileText, Megaphone, Users, BookOpen, HelpCircle, Building2, ShoppingBag, Stethoscope, Scale } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { usePublicMenus, buildMenuTree } from "@/hooks/usePublicMenus";
-
-// ─── Mega-menu static data (not CMS-managed) ────────────────────────
-const platformLinks = [
-  { icon: MapPin, title: "GBP Management", desc: "Manage all your Google Business Profiles from one dashboard", href: "/features" },
-  { icon: BarChart3, title: "Analytics & Reporting", desc: "Insights and data to grow your local business", href: "/features" },
-  { icon: Users, title: "Multi-Location", desc: "Scale operations across all your locations", href: "/features" },
-];
-
-const productCards = [
-  { icon: Star, title: "Review Monitoring", desc: "Track, respond to, and generate reviews across 200+ sites.", href: "/features" },
-  { icon: FileText, title: "Listings Management", desc: "Keep your business info accurate and consistent everywhere.", href: "/features" },
-  { icon: Megaphone, title: "Posts & Updates", desc: "Create, schedule, and publish posts directly to Google.", href: "/features" },
-  { icon: BarChart3, title: "Rank Tracking", desc: "Monitor your local search rankings and track competitors.", href: "/features" },
-  { icon: MapPin, title: "Local SEO", desc: "Optimize your presence to rank higher in local search results.", href: "/features" },
-  { icon: BookOpen, title: "Reporting", desc: "Generate white-label reports for clients and stakeholders.", href: "/features" },
-];
-
-const solutionLinks = [
-  { icon: Building2, title: "Agencies", desc: "Manage clients at scale", href: "/features" },
-  { icon: ShoppingBag, title: "Small Businesses", desc: "Grow your local presence", href: "/features" },
-  { icon: Stethoscope, title: "Healthcare", desc: "Patient reviews & visibility", href: "/features" },
-  { icon: Scale, title: "Legal", desc: "Reputation for law firms", href: "/features" },
-];
-
-const resourceLinks = [
-  { icon: BookOpen, title: "Blog", desc: "Tips & strategies", href: "/about" },
-  { icon: HelpCircle, title: "Help Center", desc: "Guides & documentation", href: "/contact" },
-  { icon: Users, title: "Community", desc: "Connect with other users", href: "/about" },
-];
+import { usePublicMenus, buildMenuTree, type PublicMenuItem } from "@/hooks/usePublicMenus";
+import { getIconComponent } from "@/components/layout/headerIcons";
 
 // ─── Hardcoded fallback nav items ────────────────────────────────────
-const fallbackNavItems = [
-  { label: "Products", key: "products" },
-  { label: "Solutions", key: "solutions" },
-  { label: "Resources", key: "resources" },
+const fallbackNavItems: NavItem[] = [
+  { label: "Home", href: "/" },
+  { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
   { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
 ];
 
-// ─── Mega-menu keys that should NOT be replaced by CMS items ─────────
-const megaMenuKeys = new Set(["products", "solutions", "resources"]);
-
-function ProductsMegaPanel({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="absolute left-0 top-full mt-2 w-[960px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in overflow-auto max-h-[calc(100vh-5rem)]" style={{ animationDuration: "0.2s" }}>
-      <div className="py-8 px-6">
-        <div className="grid grid-cols-[240px_1px_1fr] gap-6 xl:grid-cols-[240px_1px_1fr] lg:grid-cols-1">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Platform</div>
-            <div className="space-y-1">
-              {platformLinks.map((link) => (
-                <Link key={link.title} to={link.href} onClick={onClose} className="flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-accent">
-                  <div className="mt-0.5 rounded-md bg-primary/10 p-2"><link.icon className="h-5 w-5 text-primary" /></div>
-                  <div>
-                    <div className="font-medium text-sm text-foreground">{link.title}</div>
-                    <div className="text-xs text-muted-foreground leading-relaxed">{link.desc}</div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-          <div className="bg-border hidden xl:block" />
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Products</div>
-            <div className="grid grid-cols-2 xl:grid-cols-3 gap-2">
-              {productCards.map((card) => (
-                <Link key={card.title} to={card.href} onClick={onClose} className="group rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-md">
-                  <div className="mb-3 rounded-md bg-primary/10 p-2 w-fit"><card.icon className="h-5 w-5 text-primary" /></div>
-                  <div className="font-medium text-sm text-foreground mb-1">{card.title}</div>
-                  <div className="text-xs text-muted-foreground leading-relaxed">{card.desc}</div>
-                </Link>
-              ))}
-            </div>
-            <div className="mt-4 pt-4 border-t border-border">
-              <Link to="/features" onClick={onClose} className="text-sm font-medium text-primary hover:underline">See all Products →</Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+interface NavItem {
+  label: string;
+  href?: string;
+  target?: string;
+  icon?: string | null;
+  description?: string | null;
+  children?: NavItem[];
 }
 
-function MegaPanel({ links, title, onClose }: { links: typeof solutionLinks; title: string; onClose: () => void }) {
+function buildNavItems(items: PublicMenuItem[]): NavItem[] {
+  const tree = buildMenuTree(items);
+  return tree.map((node) => {
+    const hasChildren = (node as any).children?.length > 0;
+    return {
+      label: node.label,
+      href: hasChildren ? undefined : (node.url || "/"),
+      target: node.target || "_self",
+      icon: node.icon,
+      description: node.description,
+      children: hasChildren
+        ? (node as any).children.map((c: PublicMenuItem) => ({
+            label: c.label,
+            href: c.url || "/",
+            target: c.target || "_self",
+            icon: c.icon,
+            description: c.description,
+          }))
+        : undefined,
+    };
+  });
+}
+
+// ─── Mega Menu Panel ─────────────────────────────────────────────────
+function MegaPanel({ item, onClose }: { item: NavItem; onClose: () => void }) {
+  const children = item.children || [];
+  const hasDescriptions = children.some((c) => c.description);
+  const colCount = children.length > 4 ? 3 : 2;
+
   return (
-    <div className="absolute left-0 top-full mt-2 w-[640px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
+    <div
+      className="absolute left-0 top-full mt-2 bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in overflow-auto max-h-[calc(100vh-5rem)]"
+      style={{ animationDuration: "0.2s", width: hasDescriptions ? "640px" : "320px", maxWidth: "calc(100vw - 2rem)" }}
+    >
       <div className="py-6 px-6">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">{title}</div>
-        <div className="grid grid-cols-2 gap-2">
-          {links.map((link) => (
-            <Link key={link.title} to={link.href} onClick={onClose} className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-primary/30 hover:shadow-md">
-              <div className="mt-0.5 rounded-md bg-primary/10 p-2"><link.icon className="h-5 w-5 text-primary" /></div>
-              <div>
-                <div className="font-medium text-sm text-foreground">{link.title}</div>
-                <div className="text-xs text-muted-foreground">{link.desc}</div>
-              </div>
-            </Link>
-          ))}
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+          {item.label}
+        </div>
+        <div className={cn("grid gap-2", hasDescriptions ? `grid-cols-${colCount}` : "grid-cols-1")}
+             style={{ gridTemplateColumns: hasDescriptions ? `repeat(${colCount}, minmax(0, 1fr))` : undefined }}>
+          {children.map((child) => {
+            const Icon = getIconComponent(child.icon);
+            return (
+              <Link
+                key={child.label}
+                to={child.href || "/"}
+                target={child.target === "_blank" ? "_blank" : undefined}
+                onClick={onClose}
+                className={cn(
+                  "flex items-start gap-3 rounded-xl p-3 transition-all hover:bg-accent",
+                  hasDescriptions && "border border-border bg-card hover:border-primary/30 hover:shadow-md p-4"
+                )}
+              >
+                {Icon && (
+                  <div className="mt-0.5 rounded-md bg-primary/10 p-2 shrink-0">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                )}
+                <div>
+                  <div className="font-medium text-sm text-foreground">{child.label}</div>
+                  {child.description && (
+                    <div className="text-xs text-muted-foreground leading-relaxed mt-0.5">{child.description}</div>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -113,34 +102,15 @@ export function Header() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const location = useLocation();
 
-  // Fetch CMS header menu
   const { data: headerMenus } = usePublicMenus("header");
 
-  // Build nav items: keep mega-menu dropdowns, replace/append simple links from CMS
   const navItems = useMemo(() => {
-    const megaItems = fallbackNavItems.filter((item) => item.key && megaMenuKeys.has(item.key));
-
-    // Get CMS menu items (first header menu)
     const cmsMenu = headerMenus?.[0];
     if (cmsMenu && cmsMenu.items.length > 0) {
-      const cmsLinks = cmsMenu.items
-        .filter((item) => !item.parent_id) // top-level only
-        .map((item) => ({
-          label: item.label,
-          href: item.url || "/",
-          target: item.target || "_self",
-        }));
-      return [...megaItems, ...cmsLinks];
+      return buildNavItems(cmsMenu.items);
     }
-
-    // Fallback to hardcoded items
     return fallbackNavItems;
   }, [headerMenus]);
-
-  const megaMenus: Record<string, typeof solutionLinks> = {
-    solutions: solutionLinks,
-    resources: resourceLinks,
-  };
 
   return (
     <header
@@ -151,18 +121,30 @@ export function Header() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 font-bold text-xl text-foreground">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <MapPin className="h-5 w-5 text-primary-foreground" />
+            {(() => { const I = getIconComponent("MapPin"); return I ? <I className="h-5 w-5 text-primary-foreground" /> : null; })()}
           </div>
           <span>GMB Briefcase</span>
         </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center gap-1 relative">
-          {navItems.map((item: any) =>
-            item.href ? (
+          {navItems.map((item) =>
+            item.children ? (
+              <button
+                key={item.label}
+                className={cn(
+                  "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-colors hover:text-primary",
+                  activeMenu === item.label ? "text-primary" : "text-muted-foreground"
+                )}
+                onMouseEnter={() => setActiveMenu(item.label)}
+              >
+                {item.label}
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", activeMenu === item.label && "rotate-180")} />
+              </button>
+            ) : (
               <Link
                 key={item.label}
-                to={item.href}
+                to={item.href || "/"}
                 target={item.target === "_blank" ? "_blank" : undefined}
                 className={cn(
                   "px-3 py-2 text-sm font-medium rounded-md transition-colors hover:text-primary",
@@ -171,25 +153,15 @@ export function Header() {
               >
                 {item.label}
               </Link>
-            ) : (
-              <button
-                key={item.label}
-                className={cn(
-                  "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-colors hover:text-primary",
-                  activeMenu === item.key ? "text-primary" : "text-muted-foreground"
-                )}
-                onMouseEnter={() => setActiveMenu(item.key!)}
-              >
-                {item.label}
-                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", activeMenu === item.key && "rotate-180")} />
-              </button>
             )
           )}
 
           {/* Mega menu panels */}
-          {activeMenu === "products" && <ProductsMegaPanel onClose={() => setActiveMenu(null)} />}
-          {activeMenu && activeMenu !== "products" && megaMenus[activeMenu] && (
-            <MegaPanel links={megaMenus[activeMenu]} title={activeMenu === "solutions" ? "Solutions" : "Resources"} onClose={() => setActiveMenu(null)} />
+          {activeMenu && navItems.find((i) => i.label === activeMenu && i.children) && (
+            <MegaPanel
+              item={navItems.find((i) => i.label === activeMenu)!}
+              onClose={() => setActiveMenu(null)}
+            />
           )}
         </nav>
 
@@ -213,40 +185,35 @@ export function Header() {
       {mobileOpen && (
         <div className="lg:hidden border-t border-border bg-background animate-fade-in" style={{ animationDuration: "0.2s" }}>
           <div className="container mx-auto px-4 py-4 space-y-4">
-            {navItems.map((item: any) =>
-              item.href ? (
-                <Link
-                  key={item.label}
-                  to={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="block py-2 text-sm font-medium text-foreground hover:text-primary"
-                >
-                  {item.label}
-                </Link>
-              ) : (
+            {navItems.map((item) =>
+              item.children ? (
                 <details key={item.label} className="group">
                   <summary className="py-2 text-sm font-medium text-foreground cursor-pointer flex items-center justify-between">
                     {item.label}
                     <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
                   </summary>
                   <div className="pl-4 space-y-1 pb-2">
-                    {item.key === "products" ? (
-                      <>
-                        {[...platformLinks, ...productCards].map((link) => (
-                          <Link key={link.title} to={link.href} onClick={() => setMobileOpen(false)} className="block py-1.5 text-sm text-muted-foreground hover:text-primary">
-                            {link.title}
-                          </Link>
-                        ))}
-                      </>
-                    ) : (
-                      megaMenus[item.key!]?.map((link) => (
-                        <Link key={link.title} to={link.href} onClick={() => setMobileOpen(false)} className="block py-1.5 text-sm text-muted-foreground hover:text-primary">
-                          {link.title}
-                        </Link>
-                      ))
-                    )}
+                    {item.children.map((child) => (
+                      <Link
+                        key={child.label}
+                        to={child.href || "/"}
+                        onClick={() => setMobileOpen(false)}
+                        className="block py-1.5 text-sm text-muted-foreground hover:text-primary"
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
                   </div>
                 </details>
+              ) : (
+                <Link
+                  key={item.label}
+                  to={item.href || "/"}
+                  onClick={() => setMobileOpen(false)}
+                  className="block py-2 text-sm font-medium text-foreground hover:text-primary"
+                >
+                  {item.label}
+                </Link>
               )
             )}
             <div className="flex flex-col gap-2 pt-2">

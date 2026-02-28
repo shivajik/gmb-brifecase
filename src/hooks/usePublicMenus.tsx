@@ -8,6 +8,8 @@ export interface PublicMenuItem {
   parent_id: string | null;
   target: string | null;
   css_class: string | null;
+  icon: string | null;
+  description: string | null;
   sort_order: number;
 }
 
@@ -40,7 +42,7 @@ export function usePublicMenus(location: "header" | "footer" | "sidebar") {
       const menuIds = menus.map((m) => m.id);
       const { data: items, error: itemsErr } = await supabase
         .from("menu_items")
-        .select("id, menu_id, label, url, parent_id, target, css_class, sort_order")
+        .select("id, menu_id, label, url, parent_id, target, css_class, icon, description, sort_order")
         .in("menu_id", menuIds)
         .order("sort_order", { ascending: true });
 

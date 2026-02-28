@@ -147,6 +147,8 @@ export type Database = {
         Row: {
           created_at: string
           css_class: string | null
+          description: string | null
+          icon: string | null
           id: string
           label: string
           menu_id: string
@@ -159,6 +161,8 @@ export type Database = {
         Insert: {
           created_at?: string
           css_class?: string | null
+          description?: string | null
+          icon?: string | null
           id?: string
           label: string
           menu_id: string
@@ -171,6 +175,8 @@ export type Database = {
         Update: {
           created_at?: string
           css_class?: string | null
+          description?: string | null
+          icon?: string | null
           id?: string
           label?: string
           menu_id?: string

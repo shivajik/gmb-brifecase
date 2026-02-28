@@ -13,10 +13,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCmsMenu, useUpdateMenu, useSaveMenuItems, type CmsMenuItem } from "@/hooks/useCmsMenus";
 import { useCmsPages } from "@/hooks/useCmsPages";
 import { useToast } from "@/hooks/use-toast";
+
+// Available Lucide icon names for mega menu items
+const ICON_OPTIONS = [
+  "none", "MapPin", "BarChart3", "Star", "FileText", "Megaphone", "Users",
+  "BookOpen", "HelpCircle", "Building2", "ShoppingBag", "Stethoscope", "Scale",
+  "Zap", "Shield", "Globe", "Settings", "Mail", "Phone", "Calendar",
+  "Camera", "Heart", "Target", "TrendingUp", "Award", "Briefcase",
+];
 
 interface LocalItem {
   id: string;
@@ -26,6 +35,8 @@ interface LocalItem {
   parent_id: string | null;
   target: string;
   css_class: string;
+  icon: string;
+  description: string;
   expanded: boolean;
 }
 
@@ -61,6 +72,8 @@ export default function MenuEditor() {
           parent_id: item.parent_id,
           target: item.target || "_self",
           css_class: item.css_class || "",
+          icon: item.icon || "",
+          description: item.description || "",
           expanded: false,
         }))
       );
@@ -78,6 +91,8 @@ export default function MenuEditor() {
         parent_id: null,
         target: "_self",
         css_class: "",
+        icon: "",
+        description: "",
         expanded: true,
       },
     ]);
@@ -85,14 +100,13 @@ export default function MenuEditor() {
 
   const removeItem = (idx: number) => {
     const removedId = items[idx].id;
-    setItems((prev) => {
-      // Also un-parent any children
-      return prev
+    setItems((prev) =>
+      prev
         .filter((_, i) => i !== idx)
         .map((item) =>
           item.parent_id === removedId ? { ...item, parent_id: null } : item
-        );
-    });
+        )
+    );
   };
 
   const updateItem = (idx: number, patch: Partial<LocalItem>) => {
@@ -103,7 +117,6 @@ export default function MenuEditor() {
     updateItem(idx, { expanded: !items[idx].expanded });
   };
 
-  // Drag-and-drop reorder
   const onDragStart = (idx: number) => setDragIdx(idx);
   const onDragOver = (e: React.DragEvent, idx: number) => {
     e.preventDefault();
@@ -118,7 +131,6 @@ export default function MenuEditor() {
   };
   const onDragEnd = () => setDragIdx(null);
 
-  // Nesting: indent/outdent
   const indentItem = (idx: number) => {
     if (idx === 0) return;
     const parentId = items[idx - 1].id;
@@ -141,6 +153,8 @@ export default function MenuEditor() {
           parent_id: item.parent_id,
           target: item.target,
           css_class: item.css_class || null,
+          icon: item.icon || null,
+          description: item.description || null,
         })),
       });
       toast({ title: "Menu saved" });
@@ -148,9 +162,6 @@ export default function MenuEditor() {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
-
-  // Build parent lookup for indentation display
-  const parentIds = new Set(items.filter((i) => i.parent_id).map((i) => i.parent_id));
 
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
@@ -204,6 +215,10 @@ export default function MenuEditor() {
           </Button>
         </div>
 
+        <p className="text-xs text-muted-foreground">
+          💡 Nest items under a parent to create dropdown menus. Add an icon & description for mega menu cards.
+        </p>
+
         {items.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">
             No items yet. Click "Add Item" to start building your menu.
@@ -226,10 +241,7 @@ export default function MenuEditor() {
                   {/* Item header row */}
                   <div className="flex items-center gap-2 px-3 py-2">
                     <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab shrink-0" />
-                    <button
-                      onClick={() => toggleExpand(idx)}
-                      className="p-0.5 hover:bg-muted rounded"
-                    >
+                    <button onClick={() => toggleExpand(idx)} className="p-0.5 hover:bg-muted rounded">
                       {item.expanded ? (
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       ) : (
@@ -239,6 +251,11 @@ export default function MenuEditor() {
                     <span className="text-sm font-medium text-foreground flex-1 truncate">
                       {item.label || "(untitled)"}
                     </span>
+                    {item.icon && item.icon !== "none" && (
+                      <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                        {item.icon}
+                      </span>
+                    )}
                     {isNested && (
                       <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                         nested
@@ -246,33 +263,16 @@ export default function MenuEditor() {
                     )}
                     <div className="flex gap-1">
                       {idx > 0 && !isNested && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => indentItem(idx)}
-                          title="Nest under previous"
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => indentItem(idx)} title="Nest under previous">
                           <ChevronRight className="h-3 w-3" />
                         </Button>
                       )}
                       {isNested && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => outdentItem(idx)}
-                          title="Un-nest"
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => outdentItem(idx)} title="Un-nest">
                           <ChevronDown className="h-3 w-3 rotate-90" />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => removeItem(idx)}
-                      >
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeItem(idx)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
@@ -284,23 +284,11 @@ export default function MenuEditor() {
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
                           <Label className="text-xs">Label</Label>
-                          <Input
-                            value={item.label}
-                            onChange={(e) => updateItem(idx, { label: e.target.value })}
-                            placeholder="Home"
-                            className="h-8 text-sm"
-                          />
+                          <Input value={item.label} onChange={(e) => updateItem(idx, { label: e.target.value })} placeholder="Home" className="h-8 text-sm" />
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">URL</Label>
-                          <Input
-                            value={item.url}
-                            onChange={(e) =>
-                              updateItem(idx, { url: e.target.value, page_id: null })
-                            }
-                            placeholder="/about or https://…"
-                            className="h-8 text-sm"
-                          />
+                          <Input value={item.url} onChange={(e) => updateItem(idx, { url: e.target.value, page_id: null })} placeholder="/about or https://…" className="h-8 text-sm" />
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-3">
@@ -311,10 +299,7 @@ export default function MenuEditor() {
                             onValueChange={(val) =>
                               updateItem(idx, {
                                 page_id: val === "none" ? null : val,
-                                url:
-                                  val !== "none"
-                                    ? `/${pages?.find((p) => p.id === val)?.slug || ""}`
-                                    : item.url,
+                                url: val !== "none" ? `/${pages?.find((p) => p.id === val)?.slug || ""}` : item.url,
                               })
                             }
                           >
@@ -324,22 +309,15 @@ export default function MenuEditor() {
                             <SelectContent>
                               <SelectItem value="none">— Custom URL —</SelectItem>
                               {pages?.map((page) => (
-                                <SelectItem key={page.id} value={page.id}>
-                                  {page.title}
-                                </SelectItem>
+                                <SelectItem key={page.id} value={page.id}>{page.title}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Target</Label>
-                          <Select
-                            value={item.target}
-                            onValueChange={(val) => updateItem(idx, { target: val })}
-                          >
-                            <SelectTrigger className="h-8 text-sm">
-                              <SelectValue />
-                            </SelectTrigger>
+                          <Select value={item.target} onValueChange={(val) => updateItem(idx, { target: val })}>
+                            <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="_self">Same Tab</SelectItem>
                               <SelectItem value="_blank">New Tab</SelectItem>
@@ -347,13 +325,30 @@ export default function MenuEditor() {
                           </Select>
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">CSS Class</Label>
+                          <Label className="text-xs">Icon</Label>
+                          <Select value={item.icon || "none"} onValueChange={(val) => updateItem(idx, { icon: val === "none" ? "" : val })}>
+                            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="No icon" /></SelectTrigger>
+                            <SelectContent>
+                              {ICON_OPTIONS.map((icon) => (
+                                <SelectItem key={icon} value={icon}>{icon === "none" ? "— No Icon —" : icon}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Description <span className="text-muted-foreground">(for mega menu)</span></Label>
                           <Input
-                            value={item.css_class}
-                            onChange={(e) => updateItem(idx, { css_class: e.target.value })}
-                            placeholder="optional"
+                            value={item.description}
+                            onChange={(e) => updateItem(idx, { description: e.target.value })}
+                            placeholder="Short description shown in dropdown"
                             className="h-8 text-sm"
                           />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">CSS Class</Label>
+                          <Input value={item.css_class} onChange={(e) => updateItem(idx, { css_class: e.target.value })} placeholder="optional" className="h-8 text-sm" />
                         </div>
                       </div>
                     </div>

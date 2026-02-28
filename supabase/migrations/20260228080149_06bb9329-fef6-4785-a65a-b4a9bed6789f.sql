@@ -1,0 +1,4 @@
+
+ALTER TABLE public.menu_items
+  ADD COLUMN IF NOT EXISTS icon text DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS description text DEFAULT NULL;
