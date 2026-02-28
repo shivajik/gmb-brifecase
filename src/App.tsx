@@ -14,6 +14,8 @@ import ScrollToTop from "./components/ScrollToTop";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import PageList from "./pages/admin/PageList";
+import PageEditor from "./pages/admin/PageEditor";
 
 const queryClient = new QueryClient();
 
@@ -44,7 +46,9 @@ const App = () => (
             </CmsAuthProvider>
           }>
             <Route index element={<AdminDashboard />} />
-            {/* Phase 3+ routes will be added here */}
+            <Route path="pages" element={<PageList />} />
+            <Route path="pages/new" element={<PageEditor />} />
+            <Route path="pages/:id" element={<PageEditor />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
