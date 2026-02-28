@@ -12,6 +12,7 @@ import { StatsBar } from "@/components/home/StatsBar";
 import { CTABanner } from "@/components/home/CTABanner";
 
 // Features page components
+import { FeaturesHero } from "@/components/features/FeaturesHero";
 import { FeatureTabs } from "@/components/features/FeatureTabs";
 
 // Pricing page components
@@ -19,16 +20,12 @@ import { PricingPlans } from "@/components/pricing/PricingPlans";
 import { PricingFAQ } from "@/components/pricing/PricingFAQ";
 
 // About page components
+import { AboutHero } from "@/components/about/AboutHero";
 import { ValuesGrid } from "@/components/about/ValuesGrid";
 
 // Contact page components
 import { ContactForm, ContactInfo } from "@/components/contact/ContactSection";
 
-/**
- * Registry mapping CMS component names to actual React components.
- * When a CMS content block has type "component", the renderer looks up
- * the data.component field here to find the matching React component.
- */
 const COMPONENT_REGISTRY: Record<string, ComponentType<any>> = {
   // Home
   HeroSection,
@@ -41,11 +38,13 @@ const COMPONENT_REGISTRY: Record<string, ComponentType<any>> = {
   StatsBar,
   CTABanner,
   // Features
+  FeaturesHero,
   FeatureTabs,
   // Pricing
   PricingPlans,
   PricingFAQ,
   // About
+  AboutHero,
   ValuesGrid,
   // Contact
   ContactForm,
