@@ -1,9 +1,12 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Mail, Phone, Twitter, Linkedin, Facebook, Youtube } from "lucide-react";
+import { MapPin, Twitter, Linkedin, Facebook, Youtube } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { usePublicMenus, buildMenuTree } from "@/hooks/usePublicMenus";
 
-const footerLinks = {
+// ─── Fallback footer links ──────────────────────────────────────────
+const defaultFooterLinks: Record<string, { label: string; href: string }[]> = {
   Product: [
     { label: "GBP Management", href: "/features" },
     { label: "Review Monitoring", href: "/features" },
@@ -33,6 +36,30 @@ const socialLinks = [
 ];
 
 export function Footer() {
+  const { data: footerMenus } = usePublicMenus("footer");
+
+  // Build footer columns from CMS footer menus, or fall back to defaults
+  const footerColumns = useMemo(() => {
+    if (footerMenus && footerMenus.length > 0) {
+      // Each footer menu becomes a column, with its name as the heading
+      return footerMenus.map((menu) => ({
+        title: menu.name,
+        links: menu.items
+          .filter((item) => !item.parent_id) // top-level only
+          .map((item) => ({
+            label: item.label,
+            href: item.url || "/",
+            target: item.target || "_self",
+          })),
+      }));
+    }
+    // Fallback
+    return Object.entries(defaultFooterLinks).map(([title, links]) => ({
+      title,
+      links,
+    }));
+  }, [footerMenus]);
+
   return (
     <footer className="bg-foreground text-background">
       <div className="container mx-auto max-w-7xl px-4 py-16">
@@ -51,20 +78,27 @@ export function Footer() {
             <div className="space-y-2">
               <p className="text-sm font-medium">Subscribe to our newsletter</p>
               <div className="flex gap-2">
-                <Input placeholder="your@email.com" className="bg-background/10 border-background/20 text-background placeholder:text-background/40 max-w-[220px]" />
+                <Input
+                  placeholder="your@email.com"
+                  className="bg-background/10 border-background/20 text-background placeholder:text-background/40 max-w-[220px]"
+                />
                 <Button size="sm">Subscribe</Button>
               </div>
             </div>
           </div>
 
-          {/* Link columns */}
-          {Object.entries(footerLinks).map(([title, links]) => (
-            <div key={title} className="space-y-3">
-              <h4 className="font-semibold text-sm">{title}</h4>
+          {/* Dynamic link columns */}
+          {footerColumns.map((col) => (
+            <div key={col.title} className="space-y-3">
+              <h4 className="font-semibold text-sm">{col.title}</h4>
               <ul className="space-y-2">
-                {links.map((link) => (
+                {col.links.map((link) => (
                   <li key={link.label}>
-                    <Link to={link.href} className="text-sm opacity-70 hover:opacity-100 transition-opacity">
+                    <Link
+                      to={link.href}
+                      target={(link as any).target === "_blank" ? "_blank" : undefined}
+                      className="text-sm opacity-70 hover:opacity-100 transition-opacity"
+                    >
                       {link.label}
                     </Link>
                   </li>
