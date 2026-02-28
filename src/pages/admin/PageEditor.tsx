@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Eye, Plus, Trash2, GripVertical, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,10 +19,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+
 import { useCmsPage, useCreatePage, useUpdatePage, generateSlug, type ContentBlock } from "@/hooks/useCmsPages";
 import { useToast } from "@/hooks/use-toast";
+import { getComponentSchema, type PropField } from "@/components/cms/ComponentPropSchemas";
+import COMPONENT_REGISTRY from "@/components/cms/ComponentRegistry";
 
 const BLOCK_TYPES = [
   { type: "heading", label: "Heading", icon: "H" },
@@ -32,7 +37,9 @@ const BLOCK_TYPES = [
   { type: "spacer", label: "Spacer", icon: "—" },
 ] as const;
 
-function newBlock(type: ContentBlock["type"]): ContentBlock {
+const COMPONENT_NAMES = Object.keys(COMPONENT_REGISTRY);
+
+function newBlock(type: ContentBlock["type"], componentName?: string): ContentBlock {
   const id = crypto.randomUUID();
   const defaults: Record<string, Record<string, unknown>> = {
     heading: { text: "", level: "h2" },
@@ -40,6 +47,7 @@ function newBlock(type: ContentBlock["type"]): ContentBlock {
     image: { url: "", alt: "", caption: "" },
     html: { code: "" },
     spacer: { height: 40 },
+    component: { component: componentName || "" },
   };
   return { id, type, data: defaults[type] || {} };
 }
@@ -85,8 +93,8 @@ export default function PageEditor() {
     if (!slugManual) setSlug(generateSlug(val));
   };
 
-  const addBlock = (type: ContentBlock["type"]) => {
-    setBlocks((prev) => [...prev, newBlock(type)]);
+  const addBlock = (type: ContentBlock["type"], componentName?: string) => {
+    setBlocks((prev) => [...prev, newBlock(type, componentName)]);
   };
 
   const updateBlock = (blockId: string, data: Record<string, unknown>) => {
@@ -222,13 +230,24 @@ export default function PageEditor() {
                       <Plus className="mr-1 h-4 w-4" /> Add Block
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent>
+                  <DropdownMenuContent className="max-h-[400px] overflow-y-auto">
                     {BLOCK_TYPES.map((bt) => (
                       <DropdownMenuItem key={bt.type} onClick={() => addBlock(bt.type)}>
                         <span className="w-6 text-center mr-2 font-mono text-xs">{bt.icon}</span>
                         {bt.label}
                       </DropdownMenuItem>
                     ))}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">Components</DropdownMenuLabel>
+                    {COMPONENT_NAMES.map((name) => {
+                      const schema = getComponentSchema(name);
+                      return (
+                        <DropdownMenuItem key={name} onClick={() => addBlock("component" as ContentBlock["type"], name)}>
+                          <Settings2 className="h-3 w-3 mr-2 text-primary" />
+                          {schema?.label || name}
+                        </DropdownMenuItem>
+                      );
+                    })}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -307,6 +326,90 @@ export default function PageEditor() {
   );
 }
 
+/** Renders a single prop field input */
+function PropFieldInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: PropField;
+  value: unknown;
+  onChange: (val: unknown) => void;
+}) {
+  if (field.type === "text" || field.type === "url") {
+    return (
+      <Input
+        value={(value as string) || ""}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={field.placeholder}
+      />
+    );
+  }
+  if (field.type === "textarea") {
+    return (
+      <Textarea
+        value={(value as string) || ""}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={field.placeholder}
+        rows={2}
+      />
+    );
+  }
+  if (field.type === "number") {
+    return (
+      <Input
+        type="number"
+        value={(value as number) ?? ""}
+        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
+        placeholder={field.placeholder}
+      />
+    );
+  }
+  if (field.type === "array" && field.itemFields) {
+    const items = (Array.isArray(value) ? value : []) as Record<string, unknown>[];
+    const updateItem = (idx: number, key: string, val: unknown) => {
+      const updated = items.map((item, i) => i === idx ? { ...item, [key]: val } : item);
+      onChange(updated);
+    };
+    const addItem = () => {
+      const blank: Record<string, unknown> = {};
+      field.itemFields!.forEach((f) => { blank[f.key] = ""; });
+      onChange([...items, blank]);
+    };
+    const removeItem = (idx: number) => {
+      onChange(items.filter((_, i) => i !== idx));
+    };
+    return (
+      <div className="space-y-2">
+        {items.map((item, idx) => (
+          <div key={idx} className="border rounded-md p-3 bg-muted/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Item {idx + 1}</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeItem(idx)}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+            {field.itemFields!.map((subField) => (
+              <div key={subField.key} className="space-y-1">
+                <Label className="text-xs">{subField.label}</Label>
+                <PropFieldInput
+                  field={subField}
+                  value={item[subField.key]}
+                  onChange={(val) => updateItem(idx, subField.key, val)}
+                />
+              </div>
+            ))}
+          </div>
+        ))}
+        <Button variant="outline" size="sm" onClick={addItem} className="w-full">
+          <Plus className="h-3 w-3 mr-1" /> Add Item
+        </Button>
+      </div>
+    );
+  }
+  return null;
+}
+
 function BlockEditor({
   block,
   index,
@@ -322,13 +425,37 @@ function BlockEditor({
   onRemove: () => void;
   onMove: (dir: -1 | 1) => void;
 }) {
-  const label = BLOCK_TYPES.find((b) => b.type === block.type)?.label || block.type;
+  const [propsOpen, setPropsOpen] = useState(false);
+  const isComponent = block.type === "component";
+  const componentName = isComponent ? (block.data.component as string) : null;
+  const schema = componentName ? getComponentSchema(componentName) : null;
+  const label = isComponent
+    ? (schema?.label || componentName || "Component")
+    : (BLOCK_TYPES.find((b) => b.type === block.type)?.label || block.type);
 
   return (
     <div className="border rounded-lg bg-card">
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30 rounded-t-lg">
         <GripVertical className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex-1">{label}</span>
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex-1">
+          {isComponent ? (
+            <span className="flex items-center gap-1.5">
+              <Settings2 className="h-3 w-3 text-primary" />
+              {label}
+            </span>
+          ) : label}
+        </span>
+        {isComponent && schema && schema.fields.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs gap-1"
+            onClick={() => setPropsOpen(!propsOpen)}
+          >
+            <Settings2 className="h-3 w-3" />
+            {propsOpen ? "Hide Props" : "Edit Props"}
+          </Button>
+        )}
         <Button variant="ghost" size="icon" className="h-7 w-7" disabled={index === 0} onClick={() => onMove(-1)}>
           <ChevronUp className="h-3 w-3" />
         </Button>
@@ -339,7 +466,9 @@ function BlockEditor({
           <Trash2 className="h-3 w-3" />
         </Button>
       </div>
+
       <div className="p-3">
+        {/* Standard block editors */}
         {block.type === "heading" && (
           <div className="space-y-2">
             <Select value={(block.data.level as string) || "h2"} onValueChange={(v) => onUpdate({ level: v })}>
@@ -382,6 +511,49 @@ function BlockEditor({
               onChange={(e) => onUpdate({ height: parseInt(e.target.value) || 40 })}
               className="w-24"
             />
+          </div>
+        )}
+
+        {/* Component block: show name + inline prop editor */}
+        {isComponent && (
+          <div className="space-y-3">
+            {!schema && (
+              <p className="text-xs text-muted-foreground italic">
+                Unknown component: {componentName}
+              </p>
+            )}
+            {schema && schema.fields.length === 0 && (
+              <p className="text-xs text-muted-foreground italic">
+                This component has no editable props. It uses built-in defaults.
+              </p>
+            )}
+            {schema && schema.fields.length > 0 && !propsOpen && (
+              <p className="text-xs text-muted-foreground">
+                Click "Edit Props" to customize this component's content.
+                {Object.keys(block.data).filter(k => k !== "component").length > 0 && (
+                  <span className="ml-1 text-primary font-medium">
+                    ({Object.keys(block.data).filter(k => k !== "component").length} custom props set)
+                  </span>
+                )}
+              </p>
+            )}
+            {schema && propsOpen && (
+              <div className="space-y-3 pt-1 border-t mt-2">
+                <p className="text-xs text-muted-foreground">
+                  Leave fields empty to use built-in defaults.
+                </p>
+                {schema.fields.map((field) => (
+                  <div key={field.key} className="space-y-1.5">
+                    <Label className="text-sm">{field.label}</Label>
+                    <PropFieldInput
+                      field={field}
+                      value={block.data[field.key]}
+                      onChange={(val) => onUpdate({ [field.key]: val })}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

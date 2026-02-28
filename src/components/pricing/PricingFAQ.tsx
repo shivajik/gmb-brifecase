@@ -10,13 +10,17 @@ const faqs = [
   { q: "Is there a setup fee?", a: "No setup fees. You can be up and running in minutes." },
 ];
 
-export function PricingFAQ() {
+interface PricingFAQProps {
+  title?: string;
+}
+
+export function PricingFAQ({ title = "Frequently Asked Questions" }: PricingFAQProps) {
   const { ref, isVisible } = useScrollAnimation();
 
   return (
     <section ref={ref} className="py-20 bg-background">
       <div className={cn("container mx-auto max-w-3xl px-4 opacity-0", isVisible && "animate-fade-in")}>
-        <h2 className="text-3xl font-bold text-foreground text-center mb-10">Frequently Asked Questions</h2>
+        <h2 className="text-3xl font-bold text-foreground text-center mb-10">{title}</h2>
         <Accordion type="single" collapsible className="space-y-2">
           {faqs.map((faq, i) => (
             <AccordionItem key={i} value={`faq-${i}`} className="border rounded-lg px-4">

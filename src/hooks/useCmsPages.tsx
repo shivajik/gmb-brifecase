@@ -22,7 +22,7 @@ export interface CmsPage {
 
 export interface ContentBlock {
   id: string;
-  type: "heading" | "paragraph" | "image" | "html" | "spacer";
+  type: "heading" | "paragraph" | "image" | "html" | "spacer" | "component";
   data: Record<string, unknown>;
 }
 
