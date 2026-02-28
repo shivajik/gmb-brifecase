@@ -153,6 +153,8 @@ Deno.serve(async (req) => {
           parent_id: item.parent_id || null,
           target: item.target || "_self",
           css_class: item.css_class || null,
+          icon: item.icon || null,
+          description: item.description || null,
           sort_order: idx,
         }));
 

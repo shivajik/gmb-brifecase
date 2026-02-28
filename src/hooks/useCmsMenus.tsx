@@ -19,6 +19,8 @@ export interface CmsMenuItem {
   parent_id: string | null;
   target: string | null;
   css_class: string | null;
+  icon: string | null;
+  description: string | null;
   sort_order: number;
   created_at: string;
 }
