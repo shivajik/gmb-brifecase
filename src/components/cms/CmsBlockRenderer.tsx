@@ -18,13 +18,35 @@ interface CmsBlockRendererProps {
 export function CmsBlockRenderer({ blocks }: CmsBlockRendererProps) {
   if (!blocks?.length) return null;
 
-  return (
-    <>
-      {blocks.map((block) => (
-        <CmsBlock key={block.id} block={block} />
-      ))}
-    </>
-  );
+  // Group consecutive non-component blocks into styled containers
+  const rendered: React.ReactNode[] = [];
+  let inlineGroup: ContentBlock[] = [];
+
+  const flushInline = () => {
+    if (inlineGroup.length === 0) return;
+    rendered.push(
+      <section key={`inline-${inlineGroup[0].id}`} className="py-12">
+        <div className="container mx-auto max-w-4xl px-4 space-y-4">
+          {inlineGroup.map((b) => (
+            <CmsBlock key={b.id} block={b} />
+          ))}
+        </div>
+      </section>
+    );
+    inlineGroup = [];
+  };
+
+  for (const block of blocks) {
+    if (block.type === "component") {
+      flushInline();
+      rendered.push(<CmsBlock key={block.id} block={block} />);
+    } else {
+      inlineGroup.push(block);
+    }
+  }
+  flushInline();
+
+  return <>{rendered}</>;
 }
 
 function CmsBlock({ block }: { block: ContentBlock }) {
