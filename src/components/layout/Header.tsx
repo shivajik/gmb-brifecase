@@ -34,9 +34,9 @@ const resourceLinks = [
 
 function ProductsMegaPanel({ onClose }: { onClose: () => void }) {
   return (
-    <div className="absolute left-0 top-full mt-2 w-[960px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
+    <div className="absolute left-0 top-full mt-2 w-[960px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in overflow-auto max-h-[calc(100vh-5rem)]" style={{ animationDuration: "0.2s" }}>
       <div className="py-8 px-6">
-        <div className="grid grid-cols-[240px_1px_1fr] gap-6">
+        <div className="grid grid-cols-[240px_1px_1fr] gap-6 xl:grid-cols-[240px_1px_1fr] lg:grid-cols-1">
           {/* Platform column */}
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Platform</div>
@@ -60,13 +60,13 @@ function ProductsMegaPanel({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="bg-border" />
+          {/* Divider - hidden on smaller screens */}
+          <div className="bg-border hidden xl:block" />
 
           {/* Products grid */}
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">Products</div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 xl:grid-cols-3 gap-2">
               {productCards.map((card) => (
                 <Link
                   key={card.title}
@@ -229,16 +229,31 @@ export function Header() {
                     <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
                   </summary>
                   <div className="pl-4 space-y-1 pb-2">
-                    {megaMenus[item.key!]?.map((link) => (
-                      <Link
-                        key={link.title}
-                        to={link.href}
-                        onClick={() => setMobileOpen(false)}
-                        className="block py-1.5 text-sm text-muted-foreground hover:text-primary"
-                      >
-                        {link.title}
-                      </Link>
-                    ))}
+                    {item.key === "products" ? (
+                      <>
+                        {[...platformLinks, ...productCards].map((link) => (
+                          <Link
+                            key={link.title}
+                            to={link.href}
+                            onClick={() => setMobileOpen(false)}
+                            className="block py-1.5 text-sm text-muted-foreground hover:text-primary"
+                          >
+                            {link.title}
+                          </Link>
+                        ))}
+                      </>
+                    ) : (
+                      megaMenus[item.key!]?.map((link) => (
+                        <Link
+                          key={link.title}
+                          to={link.href}
+                          onClick={() => setMobileOpen(false)}
+                          className="block py-1.5 text-sm text-muted-foreground hover:text-primary"
+                        >
+                          {link.title}
+                        </Link>
+                      ))
+                    )}
                   </div>
                 </details>
               )
