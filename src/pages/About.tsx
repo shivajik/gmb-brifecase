@@ -1,4 +1,4 @@
-import { Layout } from "@/components/layout/Layout";
+import { CmsPageWrapper } from "@/components/cms/CmsPageWrapper";
 import { CTABanner } from "@/components/home/CTABanner";
 import { StatsBar } from "@/components/home/StatsBar";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
@@ -14,11 +14,11 @@ const values = [
   { icon: Globe, title: "Impact", desc: "Empowering local businesses to compete and thrive globally." },
 ];
 
-export default function About() {
+function AboutFallback() {
   const { ref, isVisible } = useScrollAnimation();
 
   return (
-    <Layout>
+    <>
       {/* Hero */}
       <section className="py-20 bg-gradient-to-br from-secondary via-background to-accent">
         <div className="container mx-auto max-w-4xl px-4 text-center">
@@ -58,6 +58,10 @@ export default function About() {
 
       <StatsBar />
       <CTABanner />
-    </Layout>
+    </>
   );
+}
+
+export default function About() {
+  return <CmsPageWrapper slug="about" fallback={<AboutFallback />} />;
 }

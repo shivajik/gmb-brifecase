@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layout } from "@/components/layout/Layout";
+import { CmsPageWrapper } from "@/components/cms/CmsPageWrapper";
 import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,12 +42,12 @@ const faqs = [
   { q: "Is there a setup fee?", a: "No setup fees. You can be up and running in minutes." },
 ];
 
-export default function Pricing() {
+function PricingFallback() {
   const [annual, setAnnual] = useState(true);
   const { ref, isVisible } = useScrollAnimation();
 
   return (
-    <Layout>
+    <>
       <section className="py-20 bg-gradient-to-br from-secondary via-background to-accent">
         <div className="container mx-auto max-w-7xl px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Simple, Transparent Pricing</h1>
@@ -112,6 +112,10 @@ export default function Pricing() {
           </Accordion>
         </div>
       </section>
-    </Layout>
+    </>
   );
+}
+
+export default function Pricing() {
+  return <CmsPageWrapper slug="pricing" fallback={<PricingFallback />} />;
 }
