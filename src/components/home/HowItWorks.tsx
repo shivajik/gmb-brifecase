@@ -1,17 +1,18 @@
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
 import { UserPlus, Settings, TrendingUp } from "lucide-react";
+import { resolveIcon } from "@/lib/iconResolver";
 
 const defaultSteps = [
-  { icon: UserPlus, title: "Connect Your Profiles", desc: "Link your Google Business Profiles in seconds. We support unlimited locations." },
-  { icon: Settings, title: "Optimize & Manage", desc: "Update business info, respond to reviews, publish posts, and fix listings — all in one place." },
-  { icon: TrendingUp, title: "Grow & Track Results", desc: "Watch your visibility climb with detailed analytics and actionable insights." },
+  { icon: UserPlus, iconName: "UserPlus", title: "Connect Your Profiles", desc: "Link your Google Business Profiles in seconds. We support unlimited locations." },
+  { icon: Settings, iconName: "Settings", title: "Optimize & Manage", desc: "Update business info, respond to reviews, publish posts, and fix listings — all in one place." },
+  { icon: TrendingUp, iconName: "TrendingUp", title: "Grow & Track Results", desc: "Watch your visibility climb with detailed analytics and actionable insights." },
 ];
 
 interface HowItWorksProps {
   title?: string;
   subtitle?: string;
-  steps?: { title: string; desc: string }[];
+  steps?: { title: string; desc: string; icon?: string }[];
 }
 
 export function HowItWorks({
@@ -20,8 +21,11 @@ export function HowItWorks({
   steps,
 }: HowItWorksProps) {
   const items = steps && steps.length > 0
-    ? steps.map((s, i) => ({ ...s, icon: defaultSteps[i % defaultSteps.length].icon }))
-    : defaultSteps;
+    ? steps.map((s, i) => ({
+        ...s,
+        iconComponent: resolveIcon(s.icon) || defaultSteps[i % defaultSteps.length].icon,
+      }))
+    : defaultSteps.map(s => ({ ...s, iconComponent: s.icon }));
   const { ref, isVisible } = useScrollAnimation();
 
   return (
@@ -42,7 +46,7 @@ export function HowItWorks({
               <div className="relative mx-auto mb-6 h-16 w-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl shadow-lg z-10">
                 {i + 1}
               </div>
-              <step.icon className="h-8 w-8 mx-auto mb-3 text-primary" />
+              <step.iconComponent className="h-8 w-8 mx-auto mb-3 text-primary" />
               <h3 className="text-lg font-semibold text-foreground mb-2">{step.title}</h3>
               <p className="text-sm text-muted-foreground max-w-xs mx-auto">{step.desc}</p>
             </div>

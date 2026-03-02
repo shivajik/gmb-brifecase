@@ -1,20 +1,21 @@
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
 import { Clock, TrendingUp, MessageSquare, Building2, Brain, Search } from "lucide-react";
+import { resolveIcon } from "@/lib/iconResolver";
 
 const defaultBenefits = [
-  { icon: Clock, title: "Save Time", desc: "Manage all locations from a single dashboard. No more switching tabs." },
-  { icon: TrendingUp, title: "Boost Rankings", desc: "Optimize your profiles to rank higher in local search results." },
-  { icon: MessageSquare, title: "Manage Reviews", desc: "Monitor and respond to reviews across 50+ platforms instantly." },
-  { icon: Building2, title: "Multi-Location Support", desc: "Scale effortlessly whether you have 1 or 1,000 locations." },
-  { icon: Brain, title: "AI-Powered Insights", desc: "Get smart recommendations to improve your local presence." },
-  { icon: Search, title: "Competitor Analysis", desc: "See how you stack up against competitors in your area." },
+  { icon: Clock, iconName: "Clock", title: "Save Time", desc: "Manage all locations from a single dashboard. No more switching tabs." },
+  { icon: TrendingUp, iconName: "TrendingUp", title: "Boost Rankings", desc: "Optimize your profiles to rank higher in local search results." },
+  { icon: MessageSquare, iconName: "MessageSquare", title: "Manage Reviews", desc: "Monitor and respond to reviews across 50+ platforms instantly." },
+  { icon: Building2, iconName: "Building2", title: "Multi-Location Support", desc: "Scale effortlessly whether you have 1 or 1,000 locations." },
+  { icon: Brain, iconName: "Brain", title: "AI-Powered Insights", desc: "Get smart recommendations to improve your local presence." },
+  { icon: Search, iconName: "Search", title: "Competitor Analysis", desc: "See how you stack up against competitors in your area." },
 ];
 
 interface BenefitsGridProps {
   title?: string;
   subtitle?: string;
-  benefits?: { title: string; desc: string }[];
+  benefits?: { title: string; desc: string; icon?: string }[];
 }
 
 export function BenefitsGrid({
@@ -23,8 +24,11 @@ export function BenefitsGrid({
   benefits,
 }: BenefitsGridProps) {
   const items = benefits && benefits.length > 0
-    ? benefits.map((b, i) => ({ ...b, icon: defaultBenefits[i % defaultBenefits.length].icon }))
-    : defaultBenefits;
+    ? benefits.map((b, i) => ({
+        ...b,
+        iconComponent: resolveIcon(b.icon) || defaultBenefits[i % defaultBenefits.length].icon,
+      }))
+    : defaultBenefits.map(b => ({ ...b, iconComponent: b.icon }));
   const { ref, isVisible } = useScrollAnimation();
 
   return (
@@ -45,7 +49,7 @@ export function BenefitsGrid({
               style={{ animationDelay: `${i * 100}ms` }}
             >
               <div className="mb-4 inline-flex rounded-lg bg-primary/10 p-3">
-                <b.icon className="h-6 w-6 text-primary" />
+                <b.iconComponent className="h-6 w-6 text-primary" />
               </div>
               <h3 className="font-semibold text-card-foreground mb-2">{b.title}</h3>
               <p className="text-sm text-muted-foreground">{b.desc}</p>

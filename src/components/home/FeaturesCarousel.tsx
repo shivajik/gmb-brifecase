@@ -1,19 +1,20 @@
 import { MapPin, Star, BarChart3, Megaphone, FileText } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
+import { resolveIcon } from "@/lib/iconResolver";
 
 const defaultFeatures = [
-  { icon: MapPin, title: "GBP Management", desc: "Update info, photos, and attributes across all locations from one dashboard." },
-  { icon: Star, title: "Review Monitoring", desc: "Track, respond to, and analyze reviews from Google and 50+ platforms." },
-  { icon: FileText, title: "Listings Management", desc: "Ensure consistent NAP data across all major directories." },
-  { icon: BarChart3, title: "Analytics & Insights", desc: "Track profile views, search queries, and customer actions in real-time." },
-  { icon: Megaphone, title: "Posts & Updates", desc: "Schedule and publish posts directly to your Google Business Profile." },
+  { icon: MapPin, iconName: "MapPin", title: "GBP Management", desc: "Update info, photos, and attributes across all locations from one dashboard." },
+  { icon: Star, iconName: "Star", title: "Review Monitoring", desc: "Track, respond to, and analyze reviews from Google and 50+ platforms." },
+  { icon: FileText, iconName: "FileText", title: "Listings Management", desc: "Ensure consistent NAP data across all major directories." },
+  { icon: BarChart3, iconName: "BarChart3", title: "Analytics & Insights", desc: "Track profile views, search queries, and customer actions in real-time." },
+  { icon: Megaphone, iconName: "Megaphone", title: "Posts & Updates", desc: "Schedule and publish posts directly to your Google Business Profile." },
 ];
 
 interface FeaturesCarouselProps {
   title?: string;
   subtitle?: string;
-  features?: { title: string; desc: string }[];
+  features?: { title: string; desc: string; icon?: string }[];
 }
 
 export function FeaturesCarousel({
@@ -22,8 +23,11 @@ export function FeaturesCarousel({
   features,
 }: FeaturesCarouselProps) {
   const items = features && features.length > 0
-    ? features.map((f, i) => ({ ...f, icon: defaultFeatures[i % defaultFeatures.length].icon }))
-    : defaultFeatures;
+    ? features.map((f, i) => ({
+        ...f,
+        iconComponent: resolveIcon(f.icon) || defaultFeatures[i % defaultFeatures.length].icon,
+      }))
+    : defaultFeatures.map(f => ({ ...f, iconComponent: f.icon }));
   const { ref, isVisible } = useScrollAnimation();
 
   return (
@@ -44,7 +48,7 @@ export function FeaturesCarousel({
               style={{ animationDelay: `${i * 100}ms` }}
             >
               <div className="mb-4 inline-flex rounded-lg bg-primary/10 p-3">
-                <f.icon className="h-6 w-6 text-primary" />
+                <f.iconComponent className="h-6 w-6 text-primary" />
               </div>
               <h3 className="font-semibold text-card-foreground mb-2">{f.title}</h3>
               <p className="text-sm text-muted-foreground">{f.desc}</p>
