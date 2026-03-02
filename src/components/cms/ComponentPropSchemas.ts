@@ -3,7 +3,7 @@
  * Each schema entry describes the fields that can be edited inline in the page editor.
  */
 
-export type PropFieldType = "text" | "textarea" | "number" | "url" | "array";
+export type PropFieldType = "text" | "textarea" | "richtext" | "number" | "url" | "array";
 
 export interface PropField {
   key: string;

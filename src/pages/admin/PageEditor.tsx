@@ -4,6 +4,7 @@ import { ArrowLeft, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Se
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -355,6 +356,16 @@ function PropFieldInput({
       />
     );
   }
+  if (field.type === "richtext") {
+    return (
+      <RichTextEditor
+        value={(value as string) || ""}
+        onChange={(val) => onChange(val)}
+        placeholder={field.placeholder}
+        minHeight={100}
+      />
+    );
+  }
   if (field.type === "number") {
     return (
       <Input
@@ -480,11 +491,11 @@ function BlockEditor({
                 <SelectItem value="h4">H4</SelectItem>
               </SelectContent>
             </Select>
-            <Input value={(block.data.text as string) || ""} onChange={(e) => onUpdate({ text: e.target.value })} placeholder="Heading text" />
+            <RichTextEditor value={(block.data.text as string) || ""} onChange={(val) => onUpdate({ text: val })} placeholder="Heading text" minHeight={60} />
           </div>
         )}
         {block.type === "paragraph" && (
-          <Textarea value={(block.data.text as string) || ""} onChange={(e) => onUpdate({ text: e.target.value })} placeholder="Paragraph text..." rows={4} />
+          <RichTextEditor value={(block.data.text as string) || ""} onChange={(val) => onUpdate({ text: val })} placeholder="Paragraph text..." />
         )}
         {block.type === "image" && (
           <div className="space-y-2">
