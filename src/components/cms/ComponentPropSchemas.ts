@@ -98,6 +98,14 @@ const COMPONENT_PROP_SCHEMAS: Record<string, ComponentPropSchema> = {
     label: "Logo Ticker",
     fields: [
       { key: "heading", label: "Heading Text", type: "text", placeholder: "Trusted by businesses managing their presence on" },
+      {
+        key: "logos",
+        label: "Logos",
+        type: "array",
+        itemFields: [
+          { key: "name", label: "Logo Name", type: "text", placeholder: "Google" },
+        ],
+      },
     ],
   },
 
@@ -106,6 +114,15 @@ const COMPONENT_PROP_SCHEMAS: Record<string, ComponentPropSchema> = {
     fields: [
       { key: "title", label: "Section Title", type: "text", placeholder: "Everything You Need to Dominate Local Search" },
       { key: "subtitle", label: "Section Subtitle", type: "textarea", placeholder: "A complete suite of tools..." },
+      {
+        key: "features",
+        label: "Features",
+        type: "array",
+        itemFields: [
+          { key: "title", label: "Title", type: "text", placeholder: "GBP Management" },
+          { key: "desc", label: "Description", type: "textarea", placeholder: "Update info, photos, and attributes..." },
+        ],
+      },
     ],
   },
 
@@ -114,6 +131,15 @@ const COMPONENT_PROP_SCHEMAS: Record<string, ComponentPropSchema> = {
     fields: [
       { key: "title", label: "Section Title", type: "text", placeholder: "How It Works" },
       { key: "subtitle", label: "Section Subtitle", type: "text", placeholder: "Get started in minutes with three simple steps." },
+      {
+        key: "steps",
+        label: "Steps",
+        type: "array",
+        itemFields: [
+          { key: "title", label: "Step Title", type: "text", placeholder: "Connect Your Profiles" },
+          { key: "desc", label: "Step Description", type: "textarea", placeholder: "Link your Google Business Profiles in seconds." },
+        ],
+      },
     ],
   },
 
@@ -122,6 +148,15 @@ const COMPONENT_PROP_SCHEMAS: Record<string, ComponentPropSchema> = {
     fields: [
       { key: "title", label: "Section Title", type: "text", placeholder: "Why Choose GMB Briefcase?" },
       { key: "subtitle", label: "Section Subtitle", type: "textarea", placeholder: "Built for agencies and businesses..." },
+      {
+        key: "benefits",
+        label: "Benefits",
+        type: "array",
+        itemFields: [
+          { key: "title", label: "Title", type: "text", placeholder: "Save Time" },
+          { key: "desc", label: "Description", type: "textarea", placeholder: "Manage all locations from a single dashboard." },
+        ],
+      },
     ],
   },
 
@@ -137,6 +172,18 @@ const COMPONENT_PROP_SCHEMAS: Record<string, ComponentPropSchema> = {
     label: "Testimonials Carousel",
     fields: [
       { key: "title", label: "Section Title", type: "text", placeholder: "What Our Customers Say" },
+      {
+        key: "testimonials",
+        label: "Testimonials",
+        type: "array",
+        itemFields: [
+          { key: "name", label: "Name", type: "text", placeholder: "Sarah Johnson" },
+          { key: "company", label: "Company", type: "text", placeholder: "Johnson Dental Group" },
+          { key: "quote", label: "Quote", type: "textarea", placeholder: "GMB Briefcase saved us 15+ hours a week..." },
+          { key: "rating", label: "Rating (1-5)", type: "number", placeholder: "5" },
+          { key: "avatar", label: "Initials", type: "text", placeholder: "SJ" },
+        ],
+      },
     ],
   },
 
