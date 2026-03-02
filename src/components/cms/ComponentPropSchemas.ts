@@ -10,6 +10,7 @@ export interface PropField {
   label: string;
   type: PropFieldType;
   placeholder?: string;
+  defaultValue?: unknown;
   /** For "array" type: defines the shape of each item */
   itemFields?: PropField[];
 }
@@ -19,6 +20,64 @@ export interface ComponentPropSchema {
   label: string;
   fields: PropField[];
 }
+
+const DEFAULT_PRICING_PLANS = [
+  {
+    name: "Starter",
+    monthly: 49,
+    annual: 39,
+    desc: "Perfect for single-location businesses",
+    features: [
+      { text: "1 Location" },
+      { text: "GBP Management" },
+      { text: "Review Monitoring" },
+      { text: "Basic Analytics" },
+      { text: "Email Support" },
+      { text: "Monthly Reports" },
+    ],
+    popular: false,
+  },
+  {
+    name: "Professional",
+    monthly: 99,
+    annual: 79,
+    desc: "Ideal for growing businesses & small agencies",
+    features: [
+      { text: "Up to 10 Locations" },
+      { text: "Everything in Starter" },
+      { text: "Listings Management" },
+      { text: "AI Review Responses" },
+      { text: "Competitor Analysis" },
+      { text: "Priority Support" },
+      { text: "Custom Reports" },
+    ],
+    popular: true,
+  },
+  {
+    name: "Enterprise",
+    monthly: 249,
+    annual: 199,
+    desc: "For agencies & multi-location brands",
+    features: [
+      { text: "Unlimited Locations" },
+      { text: "Everything in Professional" },
+      { text: "White-Label Reports" },
+      { text: "API Access" },
+      { text: "Dedicated Account Manager" },
+      { text: "Custom Integrations" },
+      { text: "SLA Guarantee" },
+    ],
+    popular: false,
+  },
+];
+
+const DEFAULT_PRICING_FAQS = [
+  { q: "Can I try GMB Briefcase for free?", a: "Yes! All plans come with a 14-day free trial. No credit card required." },
+  { q: "Can I change my plan later?", a: "Absolutely. You can upgrade or downgrade your plan at any time from your dashboard." },
+  { q: "What happens after my trial ends?", a: "You'll be prompted to choose a plan. Your data and settings are preserved." },
+  { q: "Do you offer discounts for agencies?", a: "Yes, we offer volume discounts for agencies managing 20+ locations. Contact our sales team." },
+  { q: "Is there a setup fee?", a: "No setup fees. You can be up and running in minutes." },
+];
 
 const COMPONENT_PROP_SCHEMAS: Record<string, ComponentPropSchema> = {
   // ─── Home ───────────────────────────────────────────────
@@ -122,15 +181,45 @@ const COMPONENT_PROP_SCHEMAS: Record<string, ComponentPropSchema> = {
   PricingPlans: {
     label: "Pricing Plans",
     fields: [
-      { key: "title", label: "Title", type: "text", placeholder: "Simple, Transparent Pricing" },
-      { key: "subtitle", label: "Subtitle", type: "text", placeholder: "Start free. Scale as you grow. No hidden fees." },
+      { key: "title", label: "Title", type: "text", placeholder: "Simple, Transparent Pricing", defaultValue: "Simple, Transparent Pricing" },
+      { key: "subtitle", label: "Subtitle", type: "text", placeholder: "Start free. Scale as you grow. No hidden fees.", defaultValue: "Plans that grow with your business. No surprises." },
+      {
+        key: "plans",
+        label: "Plans",
+        type: "array",
+        defaultValue: DEFAULT_PRICING_PLANS,
+        itemFields: [
+          { key: "name", label: "Plan Name", type: "text", placeholder: "Starter" },
+          { key: "monthly", label: "Monthly Price", type: "number", placeholder: "49" },
+          { key: "annual", label: "Annual Price", type: "number", placeholder: "39" },
+          { key: "desc", label: "Description", type: "textarea", placeholder: "Perfect for single-location businesses" },
+          {
+            key: "features",
+            label: "Features",
+            type: "array",
+            itemFields: [
+              { key: "text", label: "Feature", type: "text", placeholder: "1 Location" },
+            ],
+          },
+        ],
+      },
     ],
   },
 
   PricingFAQ: {
     label: "Pricing FAQ",
     fields: [
-      { key: "title", label: "Section Title", type: "text", placeholder: "Frequently Asked Questions" },
+      { key: "title", label: "Section Title", type: "text", placeholder: "Frequently Asked Questions", defaultValue: "Frequently Asked Questions" },
+      {
+        key: "faqs",
+        label: "FAQ Items",
+        type: "array",
+        defaultValue: DEFAULT_PRICING_FAQS,
+        itemFields: [
+          { key: "q", label: "Question", type: "text", placeholder: "Can I try GMB Briefcase for free?" },
+          { key: "a", label: "Answer", type: "textarea", placeholder: "Yes! All plans come with a 14-day free trial." },
+        ],
+      },
     ],
   },
 

@@ -126,16 +126,19 @@ export function BlockSettingsPanel({ block, open, onClose, onUpdate }: BlockSett
           {isComponent && schema && schema.fields.length > 0 && (
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground">Leave fields empty to use built-in defaults.</p>
-              {schema.fields.map((field) => (
-                <div key={field.key} className="space-y-1.5">
-                  <Label className="text-sm">{field.label}</Label>
-                  <PropFieldInput
-                    field={field}
-                    value={block.data[field.key]}
-                    onChange={(val) => update({ [field.key]: val })}
-                  />
-                </div>
-              ))}
+              {schema.fields.map((field) => {
+                const value = block.data[field.key] === undefined ? field.defaultValue : block.data[field.key];
+                return (
+                  <div key={field.key} className="space-y-1.5">
+                    <Label className="text-sm">{field.label}</Label>
+                    <PropFieldInput
+                      field={field}
+                      value={value}
+                      onChange={(val) => update({ [field.key]: val })}
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
 
