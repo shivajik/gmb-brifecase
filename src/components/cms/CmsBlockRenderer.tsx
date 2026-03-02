@@ -36,12 +36,8 @@ export function CmsBlockRenderer({ blocks }: CmsBlockRendererProps) {
       continue;
     }
 
-    // --- Hero detection: first h1 heading ---
-    if (
-      !heroRendered &&
-      block.type === "heading" &&
-      ((block.data.level as string) || "h2") === "h1"
-    ) {
+    // --- Hero detection: first heading block on the page ---
+    if (!heroRendered && block.type === "heading") {
       heroRendered = true;
       // Collect subtitle paragraphs that follow the hero heading
       const subtitleBlocks: ContentBlock[] = [];
@@ -86,11 +82,10 @@ export function CmsBlockRenderer({ blocks }: CmsBlockRendererProps) {
     // --- Group consecutive inline blocks into a styled section ---
     const group: ContentBlock[] = [];
     while (i < blocks.length && blocks[i].type !== "component") {
-      // Don't consume a future hero h1
+      // Don't consume a future hero heading
       if (
         !heroRendered &&
         blocks[i].type === "heading" &&
-        ((blocks[i].data.level as string) || "h2") === "h1" &&
         group.length > 0
       ) {
         break;
