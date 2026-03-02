@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Pencil, Trash2, GripVertical, Copy, Settings2, Type, Pilcrow, Image, Code, Minus, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, GripVertical, Copy, Settings2, Type, Pilcrow, Image, Code, Minus, ChevronDown, ChevronUp, Eye, Columns } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,12 +28,23 @@ import { BlockToolbar } from "@/components/admin/BlockToolbar";
 import { ElementPickerModal } from "@/components/admin/ElementPickerModal";
 import { BlockSettingsPanel } from "@/components/admin/BlockSettingsPanel";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
-import { useCmsPage, useCreatePage, useUpdatePage, generateSlug, type ContentBlock } from "@/hooks/useCmsPages";
+import { RowBlockEditor } from "@/components/admin/RowBlockEditor";
+import { useCmsPage, useCreatePage, useUpdatePage, generateSlug, type ContentBlock, type ColumnData, ROW_LAYOUTS } from "@/hooks/useCmsPages";
 import { useToast } from "@/hooks/use-toast";
 import { getComponentSchema } from "@/components/cms/ComponentPropSchemas";
 
 function newBlock(type: ContentBlock["type"], componentName?: string): ContentBlock {
   const id = crypto.randomUUID();
+  if (type === "row") {
+    const defaultLayout = "6-6";
+    const preset = ROW_LAYOUTS.find((l) => l.value === defaultLayout)!;
+    const columns: ColumnData[] = preset.columns.map((span) => ({
+      id: crypto.randomUUID(),
+      span,
+      blocks: [],
+    }));
+    return { id, type: "row", data: { layout: defaultLayout, columns } };
+  }
   const defaults: Record<string, Record<string, unknown>> = {
     heading: { text: "", level: "h2" },
     paragraph: { text: "" },
@@ -52,6 +63,7 @@ const BLOCK_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>
   html: Code,
   spacer: Minus,
   component: Settings2,
+  row: Columns,
 };
 
 export default function PageEditor() {
@@ -432,6 +444,7 @@ function InlineBlock({
 }) {
   const [hovered, setHovered] = useState(false);
   const isComponent = block.type === "component";
+  const isRow = block.type === "row";
   const isTextBlock = block.type === "heading" || block.type === "paragraph";
   const componentName = isComponent ? (block.data.component as string) : null;
   const schema = componentName ? getComponentSchema(componentName) : null;
@@ -559,7 +572,7 @@ function InlineBlock({
 
       {/* Block content */}
       <div className="px-4 py-3">
-        {!isTextBlock && (
+        {!isTextBlock && !isRow && (
           <div className="flex items-center gap-2 mb-1">
             <div className="w-6 h-6 rounded bg-muted flex items-center justify-center">
               <Icon className="h-3 w-3 text-muted-foreground" />
@@ -567,7 +580,14 @@ function InlineBlock({
             <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
           </div>
         )}
-        {isTextBlock ? renderInlineEditor() : renderPreview()}
+        {isRow ? (
+          <RowBlockEditor
+            columns={(block.data.columns as ColumnData[]) || []}
+            layout={(block.data.layout as string) || "6-6"}
+            onUpdate={(data) => onUpdate(data)}
+            onOpenBlockSettings={(childBlock) => onEdit()}
+          />
+        ) : isTextBlock ? renderInlineEditor() : renderPreview()}
       </div>
     </div>
   );

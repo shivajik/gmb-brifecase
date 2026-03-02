@@ -1,9 +1,10 @@
 import { THEME } from "@/config/themeSettings";
 import { getRegisteredComponent } from "./ComponentRegistry";
+import type { ColumnData } from "@/hooks/useCmsPages";
 
 export interface ContentBlock {
   id: string;
-  type: "heading" | "paragraph" | "image" | "html" | "spacer" | "component";
+  type: "heading" | "paragraph" | "image" | "html" | "spacer" | "component" | "row";
   data: Record<string, unknown>;
 }
 
@@ -32,6 +33,34 @@ export function CmsBlockRenderer({ blocks }: CmsBlockRendererProps) {
     // --- Component blocks render standalone ---
     if (block.type === "component") {
       rendered.push(<CmsBlock key={block.id} block={block} />);
+      i++;
+      continue;
+    }
+
+    // --- Row blocks render as grid columns ---
+    if (block.type === "row") {
+      const columns = (block.data.columns as ColumnData[]) || [];
+      const mdColSpan: Record<number, string> = {
+        3: "md:col-span-3",
+        4: "md:col-span-4",
+        6: "md:col-span-6",
+        8: "md:col-span-8",
+        9: "md:col-span-9",
+        12: "md:col-span-12",
+      };
+      rendered.push(
+        <section key={`row-${block.id}`} className={THEME.sectionPadding}>
+          <div className={THEME.contentContainer}>
+            <div className="grid grid-cols-12 gap-6">
+              {columns.map((col) => (
+                <div key={col.id} className={`col-span-12 ${mdColSpan[col.span] || "md:col-span-6"}`}>
+                  <CmsBlockRenderer blocks={col.blocks} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
       i++;
       continue;
     }
@@ -81,7 +110,7 @@ export function CmsBlockRenderer({ blocks }: CmsBlockRendererProps) {
 
     // --- Group consecutive inline blocks into a styled section ---
     const group: ContentBlock[] = [];
-    while (i < blocks.length && blocks[i].type !== "component") {
+    while (i < blocks.length && blocks[i].type !== "component" && blocks[i].type !== "row") {
       // Don't consume a future hero heading
       if (
         !heroRendered &&

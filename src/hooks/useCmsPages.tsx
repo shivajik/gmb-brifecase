@@ -22,9 +22,28 @@ export interface CmsPage {
 
 export interface ContentBlock {
   id: string;
-  type: "heading" | "paragraph" | "image" | "html" | "spacer" | "component";
+  type: "heading" | "paragraph" | "image" | "html" | "spacer" | "component" | "row";
   data: Record<string, unknown>;
 }
+
+/** A single column inside a row block */
+export interface ColumnData {
+  id: string;
+  /** Width fraction out of 12 (e.g. 6 = half) */
+  span: number;
+  blocks: ContentBlock[];
+}
+
+/** Preset layout options */
+export const ROW_LAYOUTS = [
+  { label: "1 Column", value: "12", columns: [12] },
+  { label: "2 Equal", value: "6-6", columns: [6, 6] },
+  { label: "3 Equal", value: "4-4-4", columns: [4, 4, 4] },
+  { label: "2/3 + 1/3", value: "8-4", columns: [8, 4] },
+  { label: "1/3 + 2/3", value: "4-8", columns: [4, 8] },
+  { label: "1/4 + 3/4", value: "3-9", columns: [3, 9] },
+  { label: "4 Equal", value: "3-3-3-3", columns: [3, 3, 3, 3] },
+] as const;
 
 function authHeaders(token: string | null) {
   return token ? { Authorization: `Bearer ${token}` } : {};
