@@ -119,6 +119,7 @@ const COMPONENT_PROP_SCHEMAS: Record<string, ComponentPropSchema> = {
         label: "Features",
         type: "array",
         itemFields: [
+          { key: "icon", label: "Icon (Lucide name)", type: "text", placeholder: "MapPin" },
           { key: "title", label: "Title", type: "text", placeholder: "GBP Management" },
           { key: "desc", label: "Description", type: "textarea", placeholder: "Update info, photos, and attributes..." },
         ],
@@ -136,6 +137,7 @@ const COMPONENT_PROP_SCHEMAS: Record<string, ComponentPropSchema> = {
         label: "Steps",
         type: "array",
         itemFields: [
+          { key: "icon", label: "Icon (Lucide name)", type: "text", placeholder: "UserPlus" },
           { key: "title", label: "Step Title", type: "text", placeholder: "Connect Your Profiles" },
           { key: "desc", label: "Step Description", type: "textarea", placeholder: "Link your Google Business Profiles in seconds." },
         ],
@@ -153,6 +155,7 @@ const COMPONENT_PROP_SCHEMAS: Record<string, ComponentPropSchema> = {
         label: "Benefits",
         type: "array",
         itemFields: [
+          { key: "icon", label: "Icon (Lucide name)", type: "text", placeholder: "Clock" },
           { key: "title", label: "Title", type: "text", placeholder: "Save Time" },
           { key: "desc", label: "Description", type: "textarea", placeholder: "Manage all locations from a single dashboard." },
         ],
