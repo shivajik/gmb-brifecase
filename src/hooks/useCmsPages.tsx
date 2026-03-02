@@ -92,8 +92,8 @@ export function useUpdatePage() {
   return useMutation({
     mutationFn: async (page: Partial<CmsPage> & { id: string }) => {
       const { data, error } = await supabase.functions.invoke("cms-pages", {
-        method: "PUT",
-        body: page,
+        method: "POST",
+        body: { action: "update", ...page },
         headers: authHeaders(token),
       });
       if (error) throw error;
@@ -114,8 +114,8 @@ export function useDeletePage() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { data, error } = await supabase.functions.invoke("cms-pages", {
-        method: "DELETE",
-        body: { id },
+        method: "POST",
+        body: { action: "delete", id },
         headers: authHeaders(token),
       });
       if (error) throw error;

@@ -100,7 +100,34 @@ Deno.serve(async (req) => {
         return json({ page: data });
       }
 
-      // Create page
+      // Update page
+      if (body.action === "update") {
+        if (!body.id) return json({ error: "Page ID required" }, 400);
+        const updates: Record<string, unknown> = {};
+        for (const key of ["title", "slug", "content", "status", "template", "meta_title", "meta_description", "meta_keywords", "og_image"]) {
+          if (body[key] !== undefined) updates[key] = body[key];
+        }
+        if (updates.status === "published") {
+          const { data: existing } = await db.from("pages").select("published_at").eq("id", body.id).single();
+          if (!existing?.published_at) updates.published_at = new Date().toISOString();
+        }
+        const { data, error } = await db.from("pages").update(updates).eq("id", body.id).select().single();
+        if (error) {
+          if (error.code === "23505") return json({ error: "Slug already exists" }, 409);
+          throw error;
+        }
+        return json({ page: data });
+      }
+
+      // Delete page
+      if (body.action === "delete") {
+        if (!body.id) return json({ error: "Page ID required" }, 400);
+        const { error } = await db.from("pages").delete().eq("id", body.id);
+        if (error) throw error;
+        return json({ message: "Deleted" });
+      }
+
+      // Create page (default POST with no action)
       const { title, slug, content, status, template, meta_title, meta_description, meta_keywords, og_image } = body;
       if (!title || !slug) return json({ error: "Title and slug required" }, 400);
 
@@ -123,39 +150,6 @@ Deno.serve(async (req) => {
         throw error;
       }
       return json({ page: data }, 201);
-    }
-
-    // PUT - update
-    if (req.method === "PUT") {
-      const body = await req.json();
-      if (!body.id) return json({ error: "Page ID required" }, 400);
-
-      const updates: Record<string, unknown> = {};
-      for (const key of ["title", "slug", "content", "status", "template", "meta_title", "meta_description", "meta_keywords", "og_image"]) {
-        if (body[key] !== undefined) updates[key] = body[key];
-      }
-
-      // Auto-set published_at
-      if (updates.status === "published") {
-        const { data: existing } = await db.from("pages").select("published_at").eq("id", body.id).single();
-        if (!existing?.published_at) updates.published_at = new Date().toISOString();
-      }
-
-      const { data, error } = await db.from("pages").update(updates).eq("id", body.id).select().single();
-      if (error) {
-        if (error.code === "23505") return json({ error: "Slug already exists" }, 409);
-        throw error;
-      }
-      return json({ page: data });
-    }
-
-    // DELETE
-    if (req.method === "DELETE") {
-      const body = await req.json();
-      if (!body.id) return json({ error: "Page ID required" }, 400);
-      const { error } = await db.from("pages").delete().eq("id", body.id);
-      if (error) throw error;
-      return json({ message: "Deleted" });
     }
 
     return json({ error: "Method not allowed" }, 405);
