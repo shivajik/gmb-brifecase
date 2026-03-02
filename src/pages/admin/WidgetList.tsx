@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Box } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { WidgetContentEditor } from "@/components/widgets/WidgetContentEditor";
 
 const WIDGET_TYPES = [
   { value: "html", label: "HTML / Rich Text" },
@@ -33,7 +33,7 @@ interface WidgetFormData {
   location: string;
   active: boolean;
   sort_order: number;
-  content: string; // JSON string for editing
+  content: Record<string, string>;
 }
 
 const emptyForm: WidgetFormData = {
@@ -42,7 +42,7 @@ const emptyForm: WidgetFormData = {
   location: "sidebar",
   active: true,
   sort_order: 0,
-  content: "{}",
+  content: {},
 };
 
 export default function WidgetList() {
@@ -70,45 +70,30 @@ export default function WidgetList() {
       location: widget.location,
       active: widget.active,
       sort_order: widget.sort_order,
-      content: JSON.stringify(widget.content, null, 2),
+      content: (widget.content || {}) as Record<string, string>,
     });
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
-    let parsedContent: Record<string, unknown>;
     try {
-      parsedContent = JSON.parse(formData.content);
-    } catch {
-      toast({ title: "Invalid JSON in content field", variant: "destructive" });
-      return;
-    }
-
-    try {
+      const payload = {
+        title: formData.title || null,
+        widget_type: formData.widget_type,
+        location: formData.location,
+        active: formData.active,
+        sort_order: formData.sort_order,
+        content: formData.content,
+      };
       if (editingWidget) {
-        await updateWidget.mutateAsync({
-          id: editingWidget.id,
-          title: formData.title || null,
-          widget_type: formData.widget_type,
-          location: formData.location,
-          active: formData.active,
-          sort_order: formData.sort_order,
-          content: parsedContent,
-        });
+        await updateWidget.mutateAsync({ id: editingWidget.id, ...payload });
         toast({ title: "Widget updated" });
       } else {
-        await createWidget.mutateAsync({
-          title: formData.title || null,
-          widget_type: formData.widget_type,
-          location: formData.location,
-          active: formData.active,
-          sort_order: formData.sort_order,
-          content: parsedContent,
-        });
+        await createWidget.mutateAsync(payload);
         toast({ title: "Widget created" });
       }
       setDialogOpen(false);
-    } catch (err) {
+    } catch {
       toast({ title: "Error saving widget", variant: "destructive" });
     }
   };
@@ -152,12 +137,8 @@ export default function WidgetList() {
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${w.active ? "bg-green-500" : "bg-muted-foreground/30"}`} />
                   <CardTitle className="text-base">{w.title || "Untitled"}</CardTitle>
-                  <span className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">
-                    {w.widget_type}
-                  </span>
-                  <span className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">
-                    {w.location}
-                  </span>
+                  <span className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">{w.widget_type}</span>
+                  <span className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">{w.location}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon" onClick={() => openEdit(w)}>
@@ -174,7 +155,7 @@ export default function WidgetList() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingWidget ? "Edit Widget" : "Create Widget"}</DialogTitle>
           </DialogHeader>
@@ -191,7 +172,10 @@ export default function WidgetList() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Select value={formData.widget_type} onValueChange={(v) => setFormData((f) => ({ ...f, widget_type: v }))}>
+                <Select
+                  value={formData.widget_type}
+                  onValueChange={(v) => setFormData((f) => ({ ...f, widget_type: v, content: {} }))}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {WIDGET_TYPES.map((t) => (
@@ -231,14 +215,12 @@ export default function WidgetList() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Content (JSON)</Label>
-              <Textarea
-                value={formData.content}
-                onChange={(e) => setFormData((f) => ({ ...f, content: e.target.value }))}
-                rows={6}
-                className="font-mono text-xs"
-                placeholder='{"html": "<p>Hello</p>"}'
+            <div className="border-t border-border pt-4">
+              <Label className="text-sm font-semibold mb-3 block">Content</Label>
+              <WidgetContentEditor
+                widgetType={formData.widget_type}
+                content={formData.content}
+                onChange={(content) => setFormData((f) => ({ ...f, content }))}
               />
             </div>
 
