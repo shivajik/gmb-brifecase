@@ -36,7 +36,8 @@ export function useCmsPublicPage(slug: string) {
         content: Array.isArray(data.content) ? (data.content as unknown as ContentBlock[]) : [],
       } as PublicPage;
     },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 30 * 1000, // 30 seconds — CMS edits reflect quickly
+    refetchOnWindowFocus: true,
     retry: false,
   });
 }
