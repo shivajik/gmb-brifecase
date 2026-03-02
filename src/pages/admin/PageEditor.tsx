@@ -1,13 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, GripVertical, Copy, Settings2, Type, Pilcrow, Image, Code, Minus, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -16,29 +13,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
 
+import { BlockToolbar } from "@/components/admin/BlockToolbar";
+import { ElementPickerModal } from "@/components/admin/ElementPickerModal";
+import { BlockSettingsPanel } from "@/components/admin/BlockSettingsPanel";
 import { useCmsPage, useCreatePage, useUpdatePage, generateSlug, type ContentBlock } from "@/hooks/useCmsPages";
 import { useToast } from "@/hooks/use-toast";
-import { getComponentSchema, type PropField } from "@/components/cms/ComponentPropSchemas";
-import COMPONENT_REGISTRY from "@/components/cms/ComponentRegistry";
-
-const BLOCK_TYPES = [
-  { type: "heading", label: "Heading", icon: "H" },
-  { type: "paragraph", label: "Paragraph", icon: "¶" },
-  { type: "image", label: "Image", icon: "🖼" },
-  { type: "html", label: "HTML", icon: "</>" },
-  { type: "spacer", label: "Spacer", icon: "—" },
-] as const;
-
-const COMPONENT_NAMES = Object.keys(COMPONENT_REGISTRY);
+import { getComponentSchema } from "@/components/cms/ComponentPropSchemas";
 
 function newBlock(type: ContentBlock["type"], componentName?: string): ContentBlock {
   const id = crypto.randomUUID();
@@ -52,6 +43,15 @@ function newBlock(type: ContentBlock["type"], componentName?: string): ContentBl
   };
   return { id, type, data: defaults[type] || {} };
 }
+
+const BLOCK_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  heading: Type,
+  paragraph: Pilcrow,
+  image: Image,
+  html: Code,
+  spacer: Minus,
+  component: Settings2,
+};
 
 export default function PageEditor() {
   const { id } = useParams();
@@ -74,6 +74,18 @@ export default function PageEditor() {
   const [ogImage, setOgImage] = useState("");
   const [slugManual, setSlugManual] = useState(false);
 
+  // UI state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [editingBlock, setEditingBlock] = useState<ContentBlock | null>(null);
+  const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  // Sidebar collapsible state
+  const [publishOpen, setPublishOpen] = useState(true);
+  const [attrsOpen, setAttrsOpen] = useState(true);
+  const [seoOpen, setSeoOpen] = useState(false);
+
   useEffect(() => {
     if (existingPage) {
       setTitle(existingPage.title);
@@ -94,26 +106,62 @@ export default function PageEditor() {
     if (!slugManual) setSlug(generateSlug(val));
   };
 
-  const addBlock = (type: ContentBlock["type"], componentName?: string) => {
-    setBlocks((prev) => [...prev, newBlock(type, componentName)]);
+  const addBlock = (type: string, componentName?: string) => {
+    setBlocks((prev) => [...prev, newBlock(type as ContentBlock["type"], componentName)]);
   };
 
   const updateBlock = (blockId: string, data: Record<string, unknown>) => {
     setBlocks((prev) => prev.map((b) => (b.id === blockId ? { ...b, data: { ...b.data, ...data } } : b)));
+    // Keep editing block in sync
+    if (editingBlock && editingBlock.id === blockId) {
+      setEditingBlock((prev) => prev ? { ...prev, data: { ...prev.data, ...data } } : prev);
+    }
   };
 
   const removeBlock = (blockId: string) => {
     setBlocks((prev) => prev.filter((b) => b.id !== blockId));
+    if (editingBlock?.id === blockId) {
+      setEditingBlock(null);
+      setSettingsPanelOpen(false);
+    }
   };
 
-  const moveBlock = (index: number, dir: -1 | 1) => {
+  const duplicateBlock = (block: ContentBlock) => {
+    const dup = { ...block, id: crypto.randomUUID(), data: { ...block.data } };
     setBlocks((prev) => {
+      const idx = prev.findIndex((b) => b.id === block.id);
       const arr = [...prev];
-      const target = index + dir;
-      if (target < 0 || target >= arr.length) return arr;
-      [arr[index], arr[target]] = [arr[target], arr[index]];
+      arr.splice(idx + 1, 0, dup);
       return arr;
     });
+  };
+
+  const openBlockSettings = (block: ContentBlock) => {
+    setEditingBlock(block);
+    setSettingsPanelOpen(true);
+  };
+
+  // Drag and drop
+  const handleDragStart = (idx: number) => setDragIndex(idx);
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    setDragOverIndex(idx);
+  };
+  const handleDrop = (idx: number) => {
+    if (dragIndex !== null && dragIndex !== idx) {
+      setBlocks((prev) => {
+        const arr = [...prev];
+        const [removed] = arr.splice(dragIndex, 1);
+        arr.splice(idx, 0, removed);
+        return arr;
+      });
+    }
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
   };
 
   const handleSave = async () => {
@@ -155,418 +203,320 @@ export default function PageEditor() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/admin/pages")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-xl font-bold text-foreground">{isNew ? "New Page" : "Edit Page"}</h1>
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={status} onValueChange={(v) => setStatus(v as "draft" | "published")}>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="mr-2 h-4 w-4" />
-            {saving ? "Saving..." : "Save"}
-          </Button>
-        </div>
+    <div className="flex flex-col h-full -m-6">
+      {/* Top bar */}
+      <div className="flex items-center gap-3 px-4 py-2 border-b bg-card">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/admin/pages")}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <h1 className="text-base font-semibold text-foreground flex-1 truncate">
+          {isNew ? "New Page" : title || "Edit Page"}
+        </h1>
       </div>
 
-      <Tabs defaultValue="content" className="w-full">
-        <TabsList>
-          <TabsTrigger value="content">Content</TabsTrigger>
-          <TabsTrigger value="seo">SEO & Meta</TabsTrigger>
-        </TabsList>
+      {/* Toolbar */}
+      <BlockToolbar
+        onAddElement={() => setPickerOpen(true)}
+        onSave={handleSave}
+        saving={saving}
+        slug={slug}
+        onPreview={slug ? () => window.open(`/${slug}`, "_blank") : undefined}
+      />
 
-        <TabsContent value="content" className="space-y-4 mt-4">
-          {/* Title & Slug */}
-          <Card>
-            <CardContent className="pt-6 space-y-4">
-              <div className="space-y-2">
-                <Label>Title</Label>
-                <Input value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="Page title" />
-              </div>
-              <div className="space-y-2">
-                <Label>Slug</Label>
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground text-sm">/</span>
-                  <Input
-                    value={slug}
-                    onChange={(e) => { setSlugManual(true); setSlug(e.target.value); }}
-                    placeholder="page-slug"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Template</Label>
-                <Select value={template} onValueChange={setTemplate}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default</SelectItem>
-                    <SelectItem value="full-width">Full Width</SelectItem>
-                    <SelectItem value="landing">Landing Page</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Main content area */}
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal">
+          {/* Content panel */}
+          <ResizablePanel defaultSize={70} minSize={50}>
+            <div className="h-full overflow-y-auto p-6 bg-muted/20">
+              {/* Page Title input */}
+              <input
+                value={title}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="Enter title here"
+                className="w-full text-2xl font-bold bg-transparent border-0 border-b-2 border-transparent focus:border-primary outline-none pb-2 mb-6 text-foreground placeholder:text-muted-foreground/50 transition-colors"
+              />
 
-          {/* Content Blocks */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Content Blocks</CardTitle>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Plus className="mr-1 h-4 w-4" /> Add Block
+              {/* Blocks canvas */}
+              <div className="space-y-1 min-h-[200px]">
+                {blocks.length === 0 && (
+                  <div className="border-2 border-dashed border-border rounded-lg py-16 text-center">
+                    <p className="text-muted-foreground text-sm mb-3">No content blocks yet.</p>
+                    <Button variant="outline" size="sm" onClick={() => setPickerOpen(true)}>
+                      Add your first element
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="max-h-[400px] overflow-y-auto">
-                    {BLOCK_TYPES.map((bt) => (
-                      <DropdownMenuItem key={bt.type} onClick={() => addBlock(bt.type)}>
-                        <span className="w-6 text-center mr-2 font-mono text-xs">{bt.icon}</span>
-                        {bt.label}
-                      </DropdownMenuItem>
-                    ))}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Components</DropdownMenuLabel>
-                    {COMPONENT_NAMES.map((name) => {
-                      const schema = getComponentSchema(name);
-                      return (
-                        <DropdownMenuItem key={name} onClick={() => addBlock("component" as ContentBlock["type"], name)}>
-                          <Settings2 className="h-3 w-3 mr-2 text-primary" />
-                          {schema?.label || name}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {blocks.length === 0 && (
-                <p className="text-muted-foreground text-sm text-center py-6">
-                  No content blocks yet. Click "Add Block" to start building your page.
-                </p>
-              )}
-              {blocks.map((block, idx) => (
-                <BlockEditor
-                  key={block.id}
-                  block={block}
-                  index={idx}
-                  total={blocks.length}
-                  onUpdate={(data) => updateBlock(block.id, data)}
-                  onRemove={() => removeBlock(block.id)}
-                  onMove={(dir) => moveBlock(idx, dir)}
-                />
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  </div>
+                )}
 
-        <TabsContent value="seo" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">SEO Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Meta Title</Label>
-                <Input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} placeholder="Override page title for search engines" />
-                <p className="text-xs text-muted-foreground">{metaTitle.length}/60 characters</p>
+                {blocks.map((block, idx) => {
+                  const isDragging = dragIndex === idx;
+                  const isDragOver = dragOverIndex === idx;
+                  return (
+                    <InlineBlock
+                      key={block.id}
+                      block={block}
+                      isDragging={isDragging}
+                      isDragOver={isDragOver}
+                      onDragStart={() => handleDragStart(idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDrop={() => handleDrop(idx)}
+                      onDragEnd={handleDragEnd}
+                      onEdit={() => openBlockSettings(block)}
+                      onDuplicate={() => duplicateBlock(block)}
+                      onRemove={() => removeBlock(block.id)}
+                    />
+                  );
+                })}
               </div>
-              <div className="space-y-2">
-                <Label>Meta Description</Label>
-                <Textarea value={metaDesc} onChange={(e) => setMetaDesc(e.target.value)} placeholder="Brief description for search results" rows={3} />
-                <p className="text-xs text-muted-foreground">{metaDesc.length}/160 characters</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Keywords</Label>
-                <Input value={metaKeywords} onChange={(e) => setMetaKeywords(e.target.value)} placeholder="keyword1, keyword2, keyword3" />
-              </div>
-              <Separator />
-              <div className="space-y-2">
-                <Label>OG Image URL</Label>
-                <Input value={ogImage} onChange={(e) => setOgImage(e.target.value)} placeholder="https://..." />
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </ResizablePanel>
 
-          {/* Preview */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Search Preview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="border rounded-lg p-4 bg-muted/30 space-y-1">
-                <p className="text-primary text-sm font-medium truncate">
-                  {metaTitle || title || "Page Title"}
-                </p>
-                <p className="text-xs text-primary/70 truncate">
-                  yoursite.com/{slug || "page-slug"}
-                </p>
-                <p className="text-xs text-muted-foreground line-clamp-2">
-                  {metaDesc || "No meta description set. Search engines will auto-generate a snippet."}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <ResizableHandle withHandle />
+
+          {/* Right sidebar */}
+          <ResizablePanel defaultSize={30} minSize={22} maxSize={40}>
+            <div className="h-full overflow-y-auto p-4 bg-card space-y-3">
+              {/* Publish metabox */}
+              <SidebarMetabox title="Publish" open={publishOpen} onToggle={() => setPublishOpen(!publishOpen)}>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Status</Label>
+                    <Select value={status} onValueChange={(v) => setStatus(v as "draft" | "published")}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="published">Published</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {slug && (
+                    <Button variant="ghost" size="sm" className="text-xs gap-1 w-full justify-start text-muted-foreground" onClick={() => window.open(`/${slug}`, "_blank")}>
+                      <Eye className="h-3 w-3" /> Preview: /{slug}
+                    </Button>
+                  )}
+                </div>
+              </SidebarMetabox>
+
+              {/* Page Attributes metabox */}
+              <SidebarMetabox title="Page Attributes" open={attrsOpen} onToggle={() => setAttrsOpen(!attrsOpen)}>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Slug</Label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-muted-foreground text-xs">/</span>
+                      <Input
+                        value={slug}
+                        onChange={(e) => { setSlugManual(true); setSlug(e.target.value); }}
+                        placeholder="page-slug"
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Template</Label>
+                    <Select value={template} onValueChange={setTemplate}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">Default</SelectItem>
+                        <SelectItem value="full-width">Full Width</SelectItem>
+                        <SelectItem value="landing">Landing Page</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </SidebarMetabox>
+
+              {/* SEO metabox */}
+              <SidebarMetabox title="SEO" open={seoOpen} onToggle={() => setSeoOpen(!seoOpen)}>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Meta Title</Label>
+                    <Input value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} placeholder="SEO title" className="h-8 text-xs" />
+                    <p className="text-[10px] text-muted-foreground">{metaTitle.length}/60</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Meta Description</Label>
+                    <Textarea value={metaDesc} onChange={(e) => setMetaDesc(e.target.value)} placeholder="SEO description" rows={2} className="text-xs" />
+                    <p className="text-[10px] text-muted-foreground">{metaDesc.length}/160</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Keywords</Label>
+                    <Input value={metaKeywords} onChange={(e) => setMetaKeywords(e.target.value)} placeholder="keyword1, keyword2" className="h-8 text-xs" />
+                  </div>
+                  <Separator />
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">OG Image URL</Label>
+                    <Input value={ogImage} onChange={(e) => setOgImage(e.target.value)} placeholder="https://..." className="h-8 text-xs" />
+                  </div>
+
+                  {/* Mini search preview */}
+                  <div className="border rounded p-3 bg-muted/30 space-y-0.5">
+                    <p className="text-primary text-xs font-medium truncate">{metaTitle || title || "Page Title"}</p>
+                    <p className="text-[10px] text-primary/70 truncate">yoursite.com/{slug || "page-slug"}</p>
+                    <p className="text-[10px] text-muted-foreground line-clamp-2">{metaDesc || "No meta description set."}</p>
+                  </div>
+                </div>
+              </SidebarMetabox>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+
+      {/* Element picker */}
+      <ElementPickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={addBlock} />
+
+      {/* Block settings slide-over */}
+      <BlockSettingsPanel
+        block={editingBlock}
+        open={settingsPanelOpen}
+        onClose={() => { setSettingsPanelOpen(false); setEditingBlock(null); }}
+        onUpdate={updateBlock}
+      />
     </div>
   );
 }
 
-/** Renders a single prop field input */
-function PropFieldInput({
-  field,
-  value,
-  onChange,
-}: {
-  field: PropField;
-  value: unknown;
-  onChange: (val: unknown) => void;
-}) {
-  if (field.type === "text" || field.type === "url") {
-    return (
-      <Input
-        value={(value as string) || ""}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={field.placeholder}
-      />
-    );
-  }
-  if (field.type === "textarea") {
-    return (
-      <Textarea
-        value={(value as string) || ""}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={field.placeholder}
-        rows={2}
-      />
-    );
-  }
-  if (field.type === "richtext") {
-    return (
-      <RichTextEditor
-        value={(value as string) || ""}
-        onChange={(val) => onChange(val)}
-        placeholder={field.placeholder}
-        minHeight={100}
-      />
-    );
-  }
-  if (field.type === "number") {
-    return (
-      <Input
-        type="number"
-        value={(value as number) ?? ""}
-        onChange={(e) => onChange(e.target.value ? Number(e.target.value) : undefined)}
-        placeholder={field.placeholder}
-      />
-    );
-  }
-  if (field.type === "array" && field.itemFields) {
-    const items = (Array.isArray(value) ? value : []) as Record<string, unknown>[];
-    const updateItem = (idx: number, key: string, val: unknown) => {
-      const updated = items.map((item, i) => i === idx ? { ...item, [key]: val } : item);
-      onChange(updated);
-    };
-    const addItem = () => {
-      const blank: Record<string, unknown> = {};
-      field.itemFields!.forEach((f) => { blank[f.key] = ""; });
-      onChange([...items, blank]);
-    };
-    const removeItem = (idx: number) => {
-      onChange(items.filter((_, i) => i !== idx));
-    };
-    return (
-      <div className="space-y-2">
-        {items.map((item, idx) => (
-          <div key={idx} className="border rounded-md p-3 bg-muted/20 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">Item {idx + 1}</span>
-              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => removeItem(idx)}>
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-            {field.itemFields!.map((subField) => (
-              <div key={subField.key} className="space-y-1">
-                <Label className="text-xs">{subField.label}</Label>
-                <PropFieldInput
-                  field={subField}
-                  value={item[subField.key]}
-                  onChange={(val) => updateItem(idx, subField.key, val)}
-                />
-              </div>
-            ))}
+/* ─── Sidebar Metabox ─────────────────────────────── */
+
+function SidebarMetabox({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
+  return (
+    <Collapsible open={open} onOpenChange={onToggle}>
+      <div className="border rounded-md bg-card overflow-hidden">
+        <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-foreground bg-muted/40 hover:bg-muted/60 transition-colors">
+          {title}
+          {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="px-3 py-3">
+            {children}
           </div>
-        ))}
-        <Button variant="outline" size="sm" onClick={addItem} className="w-full">
-          <Plus className="h-3 w-3 mr-1" /> Add Item
-        </Button>
+        </CollapsibleContent>
       </div>
-    );
-  }
-  return null;
+    </Collapsible>
+  );
 }
 
-function BlockEditor({
+/* ─── Inline Block (WPBakery-style) ───────────────── */
+
+function InlineBlock({
   block,
-  index,
-  total,
-  onUpdate,
+  isDragging,
+  isDragOver,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  onEdit,
+  onDuplicate,
   onRemove,
-  onMove,
 }: {
   block: ContentBlock;
-  index: number;
-  total: number;
-  onUpdate: (data: Record<string, unknown>) => void;
+  isDragging: boolean;
+  isDragOver: boolean;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: () => void;
+  onDragEnd: () => void;
+  onEdit: () => void;
+  onDuplicate: () => void;
   onRemove: () => void;
-  onMove: (dir: -1 | 1) => void;
 }) {
-  const [propsOpen, setPropsOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const isComponent = block.type === "component";
   const componentName = isComponent ? (block.data.component as string) : null;
   const schema = componentName ? getComponentSchema(componentName) : null;
+
+  const Icon = BLOCK_ICON_MAP[block.type] || Settings2;
   const label = isComponent
     ? (schema?.label || componentName || "Component")
-    : (BLOCK_TYPES.find((b) => b.type === block.type)?.label || block.type);
+    : block.type.charAt(0).toUpperCase() + block.type.slice(1);
+
+  // Preview content
+  const renderPreview = () => {
+    switch (block.type) {
+      case "heading": {
+        const text = (block.data.text as string) || "Empty heading";
+        const level = (block.data.level as string) || "h2";
+        const sizes: Record<string, string> = { h1: "text-2xl", h2: "text-xl", h3: "text-lg", h4: "text-base" };
+        return <div className={`${sizes[level] || "text-xl"} font-bold text-foreground`} dangerouslySetInnerHTML={{ __html: text }} />;
+      }
+      case "paragraph": {
+        const text = (block.data.text as string) || "Empty paragraph";
+        return <div className="text-sm text-foreground/80 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: text }} />;
+      }
+      case "image": {
+        const url = block.data.url as string;
+        return url ? (
+          <img src={url} alt={(block.data.alt as string) || ""} className="max-h-32 rounded object-contain" />
+        ) : (
+          <span className="text-xs text-muted-foreground italic">No image set</span>
+        );
+      }
+      case "html":
+        return <code className="text-xs text-muted-foreground line-clamp-2 font-mono">{(block.data.code as string) || "Empty HTML"}</code>;
+      case "spacer":
+        return <div className="text-xs text-muted-foreground">↕ {(block.data.height as number) || 40}px</div>;
+      case "component":
+        return (
+          <div className="flex items-center gap-2 text-sm">
+            <Settings2 className="h-4 w-4 text-primary" />
+            <span className="font-medium text-foreground">{label}</span>
+            {schema && schema.fields.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                ({Object.keys(block.data).filter(k => k !== "component").length} props)
+              </span>
+            )}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="border rounded-lg bg-card">
-      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30 rounded-t-lg">
-        <GripVertical className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex-1">
-          {isComponent ? (
-            <span className="flex items-center gap-1.5">
-              <Settings2 className="h-3 w-3 text-primary" />
-              {label}
-            </span>
-          ) : label}
-        </span>
-        {isComponent && schema && schema.fields.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs gap-1"
-            onClick={() => setPropsOpen(!propsOpen)}
-          >
-            <Settings2 className="h-3 w-3" />
-            {propsOpen ? "Hide Props" : "Edit Props"}
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`
+        relative group rounded-md transition-all cursor-default
+        ${isDragging ? "opacity-40" : ""}
+        ${isDragOver ? "border-2 border-dashed border-primary bg-primary/5" : "border border-transparent hover:border-dashed hover:border-border"}
+      `}
+    >
+      {/* Floating controls on hover */}
+      {hovered && !isDragging && (
+        <div className="absolute -top-3 right-2 z-10 flex items-center gap-0.5 bg-card border border-border rounded-md shadow-sm px-1 py-0.5">
+          <Button variant="ghost" size="icon" className="h-6 w-6 cursor-grab active:cursor-grabbing" title="Drag to reorder">
+            <GripVertical className="h-3 w-3" />
           </Button>
-        )}
-        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={index === 0} onClick={() => onMove(-1)}>
-          <ChevronUp className="h-3 w-3" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7" disabled={index === total - 1} onClick={() => onMove(1)}>
-          <ChevronDown className="h-3 w-3" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onRemove}>
-          <Trash2 className="h-3 w-3" />
-        </Button>
-      </div>
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Edit" onClick={onEdit}>
+            <Pencil className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={onDuplicate}>
+            <Copy className="h-3 w-3" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" title="Delete" onClick={onRemove}>
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
 
-      <div className="p-3">
-        {/* Standard block editors */}
-        {block.type === "heading" && (
-          <div className="space-y-2">
-            <Select value={(block.data.level as string) || "h2"} onValueChange={(v) => onUpdate({ level: v })}>
-              <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="h1">H1</SelectItem>
-                <SelectItem value="h2">H2</SelectItem>
-                <SelectItem value="h3">H3</SelectItem>
-                <SelectItem value="h4">H4</SelectItem>
-              </SelectContent>
-            </Select>
-            <RichTextEditor value={(block.data.text as string) || ""} onChange={(val) => onUpdate({ text: val })} placeholder="Heading text" minHeight={60} />
+      {/* Block content */}
+      <div className="flex items-start gap-3 px-4 py-3">
+        <div className="flex-shrink-0 mt-0.5">
+          <div className="w-7 h-7 rounded bg-muted flex items-center justify-center">
+            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
           </div>
-        )}
-        {block.type === "paragraph" && (
-          <RichTextEditor value={(block.data.text as string) || ""} onChange={(val) => onUpdate({ text: val })} placeholder="Paragraph text..." />
-        )}
-        {block.type === "image" && (
-          <div className="space-y-2">
-            <Input value={(block.data.url as string) || ""} onChange={(e) => onUpdate({ url: e.target.value })} placeholder="Image URL" />
-            <Input value={(block.data.alt as string) || ""} onChange={(e) => onUpdate({ alt: e.target.value })} placeholder="Alt text" />
-            <Input value={(block.data.caption as string) || ""} onChange={(e) => onUpdate({ caption: e.target.value })} placeholder="Caption (optional)" />
-          </div>
-        )}
-        {block.type === "html" && (
-          <Textarea
-            value={(block.data.code as string) || ""}
-            onChange={(e) => onUpdate({ code: e.target.value })}
-            placeholder="<div>Custom HTML...</div>"
-            rows={6}
-            className="font-mono text-sm"
-          />
-        )}
-        {block.type === "spacer" && (
-          <div className="flex items-center gap-2">
-            <Label className="text-sm">Height (px)</Label>
-            <Input
-              type="number"
-              value={(block.data.height as number) || 40}
-              onChange={(e) => onUpdate({ height: parseInt(e.target.value) || 40 })}
-              className="w-24"
-            />
-          </div>
-        )}
-
-        {/* Component block: show name + inline prop editor */}
-        {isComponent && (
-          <div className="space-y-3">
-            {!schema && (
-              <p className="text-xs text-muted-foreground italic">
-                Unknown component: {componentName}
-              </p>
-            )}
-            {schema && schema.fields.length === 0 && (
-              <p className="text-xs text-muted-foreground italic">
-                This component has no editable props. It uses built-in defaults.
-              </p>
-            )}
-            {schema && schema.fields.length > 0 && !propsOpen && (
-              <p className="text-xs text-muted-foreground">
-                Click "Edit Props" to customize this component's content.
-                {Object.keys(block.data).filter(k => k !== "component").length > 0 && (
-                  <span className="ml-1 text-primary font-medium">
-                    ({Object.keys(block.data).filter(k => k !== "component").length} custom props set)
-                  </span>
-                )}
-              </p>
-            )}
-            {schema && propsOpen && (
-              <div className="space-y-3 pt-1 border-t mt-2">
-                <p className="text-xs text-muted-foreground">
-                  Leave fields empty to use built-in defaults.
-                </p>
-                {schema.fields.map((field) => (
-                  <div key={field.key} className="space-y-1.5">
-                    <Label className="text-sm">{field.label}</Label>
-                    <PropFieldInput
-                      field={field}
-                      value={block.data[field.key]}
-                      onChange={(val) => onUpdate({ [field.key]: val })}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{label}</div>
+          {renderPreview()}
+        </div>
       </div>
     </div>
   );
