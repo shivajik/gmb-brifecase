@@ -11,6 +11,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
+import CmsPage from "./pages/CmsPage";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -54,6 +55,9 @@ const App = () => (
             <Route path="menus" element={<MenuList />} />
             <Route path="menus/:id" element={<MenuEditor />} />
           </Route>
+
+          {/* Dynamic CMS pages (catch-all before 404) */}
+          <Route path="/:slug" element={<CmsPage />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
