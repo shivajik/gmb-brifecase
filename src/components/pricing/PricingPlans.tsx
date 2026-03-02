@@ -4,7 +4,16 @@ import { CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 
-const plans = [
+interface PricingPlan {
+  name: string;
+  monthly: number;
+  annual: number;
+  desc: string;
+  features: unknown[];
+  popular?: boolean;
+}
+
+const DEFAULT_PLANS: PricingPlan[] = [
   {
     name: "Starter",
     monthly: 49,
@@ -34,13 +43,38 @@ const plans = [
 interface PricingPlansProps {
   title?: string;
   subtitle?: string;
+  plans?: PricingPlan[];
+}
+
+function normalizeFeatures(features: unknown[]): string[] {
+  return features
+    .map((feature) => {
+      if (typeof feature === "string") return feature;
+      if (feature && typeof feature === "object" && "text" in feature && typeof (feature as { text?: unknown }).text === "string") {
+        return (feature as { text: string }).text;
+      }
+      return "";
+    })
+    .filter(Boolean);
+}
+
+function toPrice(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export function PricingPlans({
   title = "Simple, Transparent Pricing",
   subtitle = "Start free. Scale as you grow. No hidden fees.",
+  plans,
 }: PricingPlansProps) {
   const [annual, setAnnual] = useState(true);
+
+  const displayPlans = (Array.isArray(plans) && plans.length > 0 ? plans : DEFAULT_PLANS).map((plan) => ({
+    ...plan,
+    features: normalizeFeatures(Array.isArray(plan.features) ? plan.features : []),
+    popular: Boolean(plan.popular),
+  }));
 
   return (
     <section className="py-20 bg-gradient-to-br from-secondary via-background to-accent">
@@ -58,7 +92,7 @@ export function PricingPlans({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {plans.map((plan) => (
+          {displayPlans.map((plan) => (
             <div key={plan.name} className={cn(
               "relative rounded-2xl border bg-card p-8 text-left transition-all hover:shadow-lg",
               plan.popular ? "border-primary shadow-md scale-105" : "border-border"
@@ -71,17 +105,17 @@ export function PricingPlans({
               <h3 className="text-xl font-bold text-card-foreground">{plan.name}</h3>
               <p className="text-sm text-muted-foreground mt-1 mb-4">{plan.desc}</p>
               <div className="mb-6">
-                <span className="text-4xl font-bold text-foreground">${annual ? plan.annual : plan.monthly}</span>
+                <span className="text-4xl font-bold text-foreground">${annual ? toPrice(plan.annual) : toPrice(plan.monthly)}</span>
                 <span className="text-muted-foreground">/mo</span>
               </div>
               <Button className="w-full mb-6" variant={plan.popular ? "default" : "outline"} asChild>
                 <Link to="/contact">Start Free Trial</Link>
               </Button>
               <ul className="space-y-3">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-foreground">
+                {plan.features.map((feature) => (
+                  <li key={`${plan.name}-${feature}`} className="flex items-center gap-2 text-sm text-foreground">
                     <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                    {f}
+                    {feature}
                   </li>
                 ))}
               </ul>
