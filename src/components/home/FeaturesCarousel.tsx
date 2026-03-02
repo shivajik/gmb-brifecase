@@ -2,7 +2,7 @@ import { MapPin, Star, BarChart3, Megaphone, FileText } from "lucide-react";
 import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
 
-const features = [
+const defaultFeatures = [
   { icon: MapPin, title: "GBP Management", desc: "Update info, photos, and attributes across all locations from one dashboard." },
   { icon: Star, title: "Review Monitoring", desc: "Track, respond to, and analyze reviews from Google and 50+ platforms." },
   { icon: FileText, title: "Listings Management", desc: "Ensure consistent NAP data across all major directories." },
@@ -13,12 +13,17 @@ const features = [
 interface FeaturesCarouselProps {
   title?: string;
   subtitle?: string;
+  features?: { title: string; desc: string }[];
 }
 
 export function FeaturesCarousel({
   title = "Everything You Need to Dominate Local Search",
   subtitle = "A complete suite of tools to manage your online presence and grow your business.",
+  features,
 }: FeaturesCarouselProps) {
+  const items = features && features.length > 0
+    ? features.map((f, i) => ({ ...f, icon: defaultFeatures[i % defaultFeatures.length].icon }))
+    : defaultFeatures;
   const { ref, isVisible } = useScrollAnimation();
 
   return (
@@ -29,7 +34,7 @@ export function FeaturesCarousel({
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{subtitle}</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {features.map((f, i) => (
+          {items.map((f, i) => (
             <div
               key={f.title}
               className={cn(

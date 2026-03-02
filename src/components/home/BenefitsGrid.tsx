@@ -2,7 +2,7 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
 import { Clock, TrendingUp, MessageSquare, Building2, Brain, Search } from "lucide-react";
 
-const benefits = [
+const defaultBenefits = [
   { icon: Clock, title: "Save Time", desc: "Manage all locations from a single dashboard. No more switching tabs." },
   { icon: TrendingUp, title: "Boost Rankings", desc: "Optimize your profiles to rank higher in local search results." },
   { icon: MessageSquare, title: "Manage Reviews", desc: "Monitor and respond to reviews across 50+ platforms instantly." },
@@ -14,12 +14,17 @@ const benefits = [
 interface BenefitsGridProps {
   title?: string;
   subtitle?: string;
+  benefits?: { title: string; desc: string }[];
 }
 
 export function BenefitsGrid({
   title = "Why Choose GMB Briefcase?",
   subtitle = "Built for agencies and businesses that take local marketing seriously.",
+  benefits,
 }: BenefitsGridProps) {
+  const items = benefits && benefits.length > 0
+    ? benefits.map((b, i) => ({ ...b, icon: defaultBenefits[i % defaultBenefits.length].icon }))
+    : defaultBenefits;
   const { ref, isVisible } = useScrollAnimation();
 
   return (
@@ -30,7 +35,7 @@ export function BenefitsGrid({
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">{subtitle}</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {benefits.map((b, i) => (
+          {items.map((b, i) => (
             <div
               key={b.title}
               className={cn(

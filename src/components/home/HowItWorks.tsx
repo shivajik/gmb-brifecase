@@ -2,7 +2,7 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
 import { UserPlus, Settings, TrendingUp } from "lucide-react";
 
-const steps = [
+const defaultSteps = [
   { icon: UserPlus, title: "Connect Your Profiles", desc: "Link your Google Business Profiles in seconds. We support unlimited locations." },
   { icon: Settings, title: "Optimize & Manage", desc: "Update business info, respond to reviews, publish posts, and fix listings — all in one place." },
   { icon: TrendingUp, title: "Grow & Track Results", desc: "Watch your visibility climb with detailed analytics and actionable insights." },
@@ -11,12 +11,17 @@ const steps = [
 interface HowItWorksProps {
   title?: string;
   subtitle?: string;
+  steps?: { title: string; desc: string }[];
 }
 
 export function HowItWorks({
   title = "How It Works",
   subtitle = "Get started in minutes with three simple steps.",
+  steps,
 }: HowItWorksProps) {
+  const items = steps && steps.length > 0
+    ? steps.map((s, i) => ({ ...s, icon: defaultSteps[i % defaultSteps.length].icon }))
+    : defaultSteps;
   const { ref, isVisible } = useScrollAnimation();
 
   return (
@@ -28,7 +33,7 @@ export function HowItWorks({
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
           <div className="hidden md:block absolute top-16 left-[16.5%] right-[16.5%] h-0.5 bg-border" />
-          {steps.map((step, i) => (
+          {items.map((step, i) => (
             <div
               key={step.title}
               className={cn("relative text-center opacity-0", isVisible && "animate-fade-in")}

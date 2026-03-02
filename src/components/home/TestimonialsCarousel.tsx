@@ -4,7 +4,7 @@ import { useScrollAnimation } from "@/hooks/useScrollAnimation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const testimonials = [
+const defaultTestimonials = [
   { name: "Sarah Johnson", company: "Johnson Dental Group", quote: "GMB Briefcase saved us 15+ hours a week managing our 12 locations. The review monitoring alone is worth it.", rating: 5, avatar: "SJ" },
   { name: "Michael Chen", company: "Bay Area Auto Repair", quote: "We saw a 40% increase in phone calls within the first month. The analytics make it easy to see what's working.", rating: 5, avatar: "MC" },
   { name: "Emily Rodriguez", company: "Fresh Bites Restaurants", quote: "Managing posts and reviews across all our locations used to be a nightmare. Now it's a breeze.", rating: 5, avatar: "ER" },
@@ -13,15 +13,19 @@ const testimonials = [
 
 interface TestimonialsCarouselProps {
   title?: string;
+  testimonials?: { name: string; company: string; quote: string; rating?: number; avatar?: string }[];
 }
 
-export function TestimonialsCarousel({ title = "What Our Customers Say" }: TestimonialsCarouselProps) {
+export function TestimonialsCarousel({ title = "What Our Customers Say", testimonials }: TestimonialsCarouselProps) {
+  const items = testimonials && testimonials.length > 0
+    ? testimonials.map(t => ({ ...t, rating: t.rating || 5, avatar: t.avatar || t.name.split(" ").map(w => w[0]).join("") }))
+    : defaultTestimonials;
   const [current, setCurrent] = useState(0);
   const { ref, isVisible } = useScrollAnimation();
 
-  const next = () => setCurrent((c) => (c + 1) % testimonials.length);
-  const prev = () => setCurrent((c) => (c - 1 + testimonials.length) % testimonials.length);
-  const t = testimonials[current];
+  const next = () => setCurrent((c) => (c + 1) % items.length);
+  const prev = () => setCurrent((c) => (c - 1 + items.length) % items.length);
+  const t = items[current];
 
   return (
     <section ref={ref} className="py-20 bg-background">
@@ -53,7 +57,7 @@ export function TestimonialsCarousel({ title = "What Our Customers Say" }: Testi
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <div className="flex gap-2">
-              {testimonials.map((_, i) => (
+              {items.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setCurrent(i)}
