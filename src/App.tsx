@@ -19,6 +19,9 @@ import PageList from "./pages/admin/PageList";
 import PageEditor from "./pages/admin/PageEditor";
 import MenuList from "./pages/admin/MenuList";
 import MenuEditor from "./pages/admin/MenuEditor";
+import WidgetList from "./pages/admin/WidgetList";
+import AppearanceSettings from "./pages/admin/AppearanceSettings";
+import SiteSettings from "./pages/admin/SiteSettings";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +57,9 @@ const App = () => (
             <Route path="pages/:id" element={<PageEditor />} />
             <Route path="menus" element={<MenuList />} />
             <Route path="menus/:id" element={<MenuEditor />} />
+            <Route path="widgets" element={<WidgetList />} />
+            <Route path="appearance" element={<AppearanceSettings />} />
+            <Route path="settings" element={<SiteSettings />} />
           </Route>
 
           {/* Dynamic CMS pages (catch-all before 404) */}
