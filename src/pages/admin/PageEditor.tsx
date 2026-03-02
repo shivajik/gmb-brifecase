@@ -278,6 +278,7 @@ export default function PageEditor() {
                       onDuplicate={() => duplicateBlock(block)}
                       onRemove={() => removeBlock(block.id)}
                       onUpdate={(data) => updateBlock(block.id, data)}
+                      onOpenChildSettings={(childBlock) => openBlockSettings(childBlock)}
                     />
                   );
                 })}
@@ -429,6 +430,7 @@ function InlineBlock({
   onDuplicate,
   onRemove,
   onUpdate,
+  onOpenChildSettings,
 }: {
   block: ContentBlock;
   isDragging: boolean;
@@ -441,6 +443,7 @@ function InlineBlock({
   onDuplicate: () => void;
   onRemove: () => void;
   onUpdate: (data: Record<string, unknown>) => void;
+  onOpenChildSettings: (childBlock: ContentBlock) => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const isComponent = block.type === "component";
@@ -585,7 +588,9 @@ function InlineBlock({
             columns={(block.data.columns as ColumnData[]) || []}
             layout={(block.data.layout as string) || "6-6"}
             onUpdate={(data) => onUpdate(data)}
-            onOpenBlockSettings={(childBlock) => onEdit()}
+            onOpenBlockSettings={(childBlock, _colId) => {
+              onOpenChildSettings(childBlock);
+            }}
           />
         ) : isTextBlock ? renderInlineEditor() : renderPreview()}
       </div>
