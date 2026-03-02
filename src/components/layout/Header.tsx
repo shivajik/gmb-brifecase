@@ -143,7 +143,7 @@ function MegaLinkCard({ link, onClose, variant }: { link: MegaLink; onClose: () 
 
 function ProductsMegaPanel({ data, onClose }: { data: { platform?: MegaLink[]; items: MegaLink[] }; onClose: () => void }) {
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[960px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in overflow-auto max-h-[calc(100vh-5rem)]" style={{ animationDuration: "0.2s" }}>
+    <div className="absolute top-full mt-2 w-[960px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in overflow-auto max-h-[calc(100vh-5rem)] -left-[280px]" style={{ animationDuration: "0.2s" }}>
       <div className="py-8 px-6">
         <div className={cn(
           "grid gap-6",
@@ -181,7 +181,7 @@ function ProductsMegaPanel({ data, onClose }: { data: { platform?: MegaLink[]; i
 
 function StandardMegaPanel({ data, title, onClose }: { data: { items: MegaLink[] }; title: string; onClose: () => void }) {
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[640px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
+    <div className="absolute top-full mt-2 w-[640px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in -left-[120px]" style={{ animationDuration: "0.2s" }}>
       <div className="py-6 px-6">
         <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">{title}</div>
         <div className="grid grid-cols-2 gap-2">
@@ -237,7 +237,7 @@ export function Header() {
       className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur border-b border-border"
       onMouseLeave={() => setActiveMenu(null)}
     >
-      <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4">
+      <div className="container mx-auto max-w-7xl relative flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 font-bold text-xl text-foreground">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
@@ -276,13 +276,11 @@ export function Header() {
               </Link>
             );
           })}
-
           {/* Mega menu panels */}
           {activeMenu && (() => {
             const item = navItems.find((i) => i.label === activeMenu);
             const md = item ? getMegaData(item) : null;
             if (!md) return null;
-            // Use Products-style panel if it has a platform section or many items
             if (md.platform || md.items.length > 4) {
               return <ProductsMegaPanel data={md} onClose={() => setActiveMenu(null)} />;
             }
