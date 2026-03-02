@@ -1,89 +1,39 @@
 
 
-## CMS with Custom Authentication - Implementation Plan
+## Plan: Add Rich Text Editor with HTML View to Content Blocks
 
-### Prerequisite: Connect External Supabase
-You need to connect your Supabase project first. I'll prompt you to do this before any database work.
+### Problem
+The paragraph and heading block editors currently use plain `<Input>` and `<Textarea>` components. The user wants a rich text editing experience with the ability to toggle to raw HTML view.
 
----
+### Approach
+Build a lightweight `RichTextEditor` component that provides:
+- A toolbar with basic formatting buttons (Bold, Italic, Underline, Link, Lists, Headings)
+- A visual editing area using `contentEditable` div
+- A toggle to switch to raw HTML view (code editor mode using a monospace `<Textarea>`)
+- The component stores content as HTML string internally
 
-### Phase 1: Database Schema & Custom Auth System
+### Changes
 
-**Database tables via Supabase migrations:**
+**1. Create `src/components/admin/RichTextEditor.tsx`**
+- A new component with a formatting toolbar (Bold, Italic, Underline, Strikethrough, Link, Ordered List, Unordered List, alignment)
+- Uses `document.execCommand` for formatting in the contentEditable area
+- Toggle button to switch between "Visual" and "HTML" modes
+- Accepts `value` (HTML string) and `onChange` callback
+- Styled consistently with existing admin UI (borders, rounded corners, muted backgrounds)
 
-- `cms_users` — id (uuid), email (unique), password_hash (text), name, created_at, updated_at
-- `cms_sessions` — id (uuid), user_id (FK), token (unique), expires_at, created_at
-- `cms_user_roles` — id, user_id (FK to cms_users), role (enum: admin/editor/viewer)
-- `pages` — id, slug, title, content (jsonb), status (draft/published), template, meta_title, meta_description, meta_keywords, og_image, author_id, created_at, updated_at, published_at
-- `menus` — id, name, location (header/footer/sidebar)
-- `menu_items` — id, menu_id (FK), label, url, page_id (nullable FK), parent_id (self-ref), sort_order, target, css_class
-- `site_settings` — id, key (unique), value (jsonb), group (appearance/general/seo/scripts)
-- `widgets` — id, location, widget_type, title, content (jsonb), sort_order, active (boolean)
-- `media` — id, filename, url, alt_text, mime_type, size, uploaded_by, created_at
+**2. Update `src/pages/admin/PageEditor.tsx`**
+- Replace the `<Textarea>` for **paragraph** blocks (line 487) with the new `RichTextEditor`
+- Replace the `<Input>` for **heading** text (line 483) with the `RichTextEditor`
+- The **HTML block** (line 496-504) already accepts raw HTML, but will also get the `RichTextEditor` with HTML mode as default
+- Keep the existing `<Textarea>` for the html block type as-is (it's already a code editor)
 
-**Edge functions for custom auth:**
-- `cms-auth/login` — validates email/password (bcrypt), creates session token, returns JWT
-- `cms-auth/register` — creates user with hashed password (admin-only action)
-- `cms-auth/logout` — invalidates session
-- `cms-auth/verify` — validates session token, returns user + role
+**3. Update `src/components/cms/CmsBlockRenderer.tsx`**
+- Update the paragraph renderer (line 79-83) to use `dangerouslySetInnerHTML` instead of plain text, so rich text formatting (bold, italic, links) renders on the frontend
 
-**RLS:** All CMS tables use RLS policies that check session validity via a security definer function querying `cms_sessions` and `cms_user_roles`.
+**4. Add `richtext` field type to `ComponentPropSchemas.ts`**
+- Add `"richtext"` to the `PropFieldType` union so component schemas can also use it
+- Update `PropFieldInput` in PageEditor to render `RichTextEditor` for `richtext` type fields
 
----
-
-### Phase 2: Admin Dashboard Shell
-- `/admin/login` — custom login page (email + password form)
-- `/admin` — protected layout with sidebar navigation
-- Auth context provider that stores JWT in memory (not localStorage for security), with httpOnly cookie option via edge function
-- Route guard component checking auth state
-- Sidebar: Dashboard, Pages, Menus, Widgets, Media, Appearance, Settings, Users
-
-### Phase 3: Page Management
-- Page list with search, status filter, bulk actions
-- Page editor: title, slug (auto-gen), content blocks (JSON-based), status toggle
-- Per-page SEO panel: meta title, description, keywords, OG image upload
-- Draft/publish/schedule workflow
-- Revision history (optional)
-
-### Phase 4: Menu Manager
-- CRUD menus assigned to locations
-- Drag-and-drop menu item ordering
-- Nested items support (parent/child)
-- Link to pages or external URLs
-
-### Phase 5: Widgets & Media
-- Widget CRUD by location (header bar, footer columns, sidebar)
-- Widget types: text/HTML, link list, social icons, contact info
-- Media library with upload to Supabase Storage, browse, delete
-
-### Phase 6: Appearance & Settings
-- Appearance: colors, fonts, logo/favicon upload
-- General settings: site title, tagline, default SEO
-- Script injection: analytics, custom head/body scripts
-- All stored in `site_settings` key-value table
-
-### Phase 7: User Management
-- List CMS users with roles
-- Create/invite users (admin only)
-- Assign/change roles
-- Deactivate accounts
-
-### Phase 8: Frontend Integration
-- Dynamic page rendering from DB content
-- Dynamic menu rendering
-- Site settings applied globally (colors, logo, meta tags)
-- Per-page SEO `<head>` tags
-
----
-
-### Technical Details
-
-- **Auth flow**: Edge function hashes passwords with bcrypt, issues JWT tokens stored in-memory on the client with refresh via httpOnly cookie. No Supabase Auth involved.
-- **Content model**: Page content stored as JSON blocks for flexibility (headings, text, images, CTAs).
-- **Admin UI**: Built with existing shadcn/ui components (tables, forms, dialogs, tabs).
-- **Data fetching**: React Query for all admin CRUD operations.
-- **Security**: All mutations go through edge functions that validate the session token. RLS as a secondary defense layer.
-
-### Build Order
-Phase 1 first (requires Supabase connection). Each phase is 3-6 iterations. We start by connecting Supabase.
+### No new dependencies needed
+The rich text editor will use the browser's built-in `contentEditable` and `document.execCommand` APIs, avoiding any external library.
 
