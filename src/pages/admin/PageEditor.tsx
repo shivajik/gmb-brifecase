@@ -27,6 +27,7 @@ import {
 import { BlockToolbar } from "@/components/admin/BlockToolbar";
 import { ElementPickerModal } from "@/components/admin/ElementPickerModal";
 import { BlockSettingsPanel } from "@/components/admin/BlockSettingsPanel";
+import { RichTextEditor } from "@/components/admin/RichTextEditor";
 import { useCmsPage, useCreatePage, useUpdatePage, generateSlug, type ContentBlock } from "@/hooks/useCmsPages";
 import { useToast } from "@/hooks/use-toast";
 import { getComponentSchema } from "@/components/cms/ComponentPropSchemas";
@@ -264,6 +265,7 @@ export default function PageEditor() {
                       onEdit={() => openBlockSettings(block)}
                       onDuplicate={() => duplicateBlock(block)}
                       onRemove={() => removeBlock(block.id)}
+                      onUpdate={(data) => updateBlock(block.id, data)}
                     />
                   );
                 })}
@@ -396,7 +398,7 @@ function SidebarMetabox({ title, open, onToggle, children }: { title: string; op
   );
 }
 
-/* ─── Inline Block (WPBakery-style) ───────────────── */
+/* ─── Inline Block (WordPress Classic-style) ──────── */
 
 function InlineBlock({
   block,
@@ -409,6 +411,7 @@ function InlineBlock({
   onEdit,
   onDuplicate,
   onRemove,
+  onUpdate,
 }: {
   block: ContentBlock;
   isDragging: boolean;
@@ -420,9 +423,11 @@ function InlineBlock({
   onEdit: () => void;
   onDuplicate: () => void;
   onRemove: () => void;
+  onUpdate: (data: Record<string, unknown>) => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const isComponent = block.type === "component";
+  const isTextBlock = block.type === "heading" || block.type === "paragraph";
   const componentName = isComponent ? (block.data.component as string) : null;
   const schema = componentName ? getComponentSchema(componentName) : null;
 
@@ -431,41 +436,79 @@ function InlineBlock({
     ? (schema?.label || componentName || "Component")
     : block.type.charAt(0).toUpperCase() + block.type.slice(1);
 
-  // Preview content
+  // Inline editor for text blocks (WordPress Classic style)
+  const renderInlineEditor = () => {
+    if (block.type === "heading") {
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <Select value={(block.data.level as string) || "h2"} onValueChange={(v) => onUpdate({ level: v })}>
+              <SelectTrigger className="h-7 w-20 text-xs border-muted">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="h1">H1</SelectItem>
+                <SelectItem value="h2">H2</SelectItem>
+                <SelectItem value="h3">H3</SelectItem>
+                <SelectItem value="h4">H4</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <RichTextEditor
+            value={(block.data.text as string) || ""}
+            onChange={(val) => onUpdate({ text: val })}
+            placeholder="Enter heading text..."
+            minHeight={50}
+          />
+        </div>
+      );
+    }
+
+    if (block.type === "paragraph") {
+      return (
+        <RichTextEditor
+          value={(block.data.text as string) || ""}
+          onChange={(val) => onUpdate({ text: val })}
+          placeholder="Start writing..."
+          minHeight={100}
+        />
+      );
+    }
+
+    return null;
+  };
+
+  // Preview for non-text blocks
   const renderPreview = () => {
     switch (block.type) {
-      case "heading": {
-        const text = (block.data.text as string) || "Empty heading";
-        const level = (block.data.level as string) || "h2";
-        const sizes: Record<string, string> = { h1: "text-2xl", h2: "text-xl", h3: "text-lg", h4: "text-base" };
-        return <div className={`${sizes[level] || "text-xl"} font-bold text-foreground`} dangerouslySetInnerHTML={{ __html: text }} />;
-      }
-      case "paragraph": {
-        const text = (block.data.text as string) || "Empty paragraph";
-        return <div className="text-sm text-foreground/80 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: text }} />;
-      }
       case "image": {
         const url = block.data.url as string;
         return url ? (
-          <img src={url} alt={(block.data.alt as string) || ""} className="max-h-32 rounded object-contain" />
+          <div className="space-y-1">
+            <img src={url} alt={(block.data.alt as string) || ""} className="max-h-40 rounded object-contain" />
+            {block.data.caption && <p className="text-xs text-muted-foreground">{block.data.caption as string}</p>}
+          </div>
         ) : (
-          <span className="text-xs text-muted-foreground italic">No image set</span>
+          <span className="text-xs text-muted-foreground italic">No image set — click Edit to configure</span>
         );
       }
       case "html":
-        return <code className="text-xs text-muted-foreground line-clamp-2 font-mono">{(block.data.code as string) || "Empty HTML"}</code>;
+        return <code className="text-xs text-muted-foreground line-clamp-3 font-mono block whitespace-pre-wrap">{(block.data.code as string) || "Empty HTML — click Edit to add code"}</code>;
       case "spacer":
-        return <div className="text-xs text-muted-foreground">↕ {(block.data.height as number) || 40}px</div>;
+        return <div className="text-xs text-muted-foreground">↕ Spacer: {(block.data.height as number) || 40}px</div>;
       case "component":
         return (
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm py-2">
             <Settings2 className="h-4 w-4 text-primary" />
             <span className="font-medium text-foreground">{label}</span>
             {schema && schema.fields.length > 0 && (
               <span className="text-xs text-muted-foreground">
-                ({Object.keys(block.data).filter(k => k !== "component").length} props)
+                ({Object.keys(block.data).filter(k => k !== "component").length} props configured)
               </span>
             )}
+            <Button variant="outline" size="sm" className="ml-auto text-xs h-6" onClick={onEdit}>
+              Configure
+            </Button>
           </div>
         );
       default:
@@ -483,9 +526,10 @@ function InlineBlock({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={`
-        relative group rounded-md transition-all cursor-default
+        relative group rounded-md transition-all
         ${isDragging ? "opacity-40" : ""}
-        ${isDragOver ? "border-2 border-dashed border-primary bg-primary/5" : "border border-transparent hover:border-dashed hover:border-border"}
+        ${isDragOver ? "border-2 border-dashed border-primary bg-primary/5" : "border border-border hover:border-primary/30"}
+        ${isTextBlock ? "bg-card" : "bg-card/50"}
       `}
     >
       {/* Floating controls on hover */}
@@ -494,9 +538,11 @@ function InlineBlock({
           <Button variant="ghost" size="icon" className="h-6 w-6 cursor-grab active:cursor-grabbing" title="Drag to reorder">
             <GripVertical className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" title="Edit" onClick={onEdit}>
-            <Pencil className="h-3 w-3" />
-          </Button>
+          {!isTextBlock && (
+            <Button variant="ghost" size="icon" className="h-6 w-6" title="Edit" onClick={onEdit}>
+              <Pencil className="h-3 w-3" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="h-6 w-6" title="Duplicate" onClick={onDuplicate}>
             <Copy className="h-3 w-3" />
           </Button>
@@ -507,16 +553,16 @@ function InlineBlock({
       )}
 
       {/* Block content */}
-      <div className="flex items-start gap-3 px-4 py-3">
-        <div className="flex-shrink-0 mt-0.5">
-          <div className="w-7 h-7 rounded bg-muted flex items-center justify-center">
-            <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+      <div className="px-4 py-3">
+        {!isTextBlock && (
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-6 h-6 rounded bg-muted flex items-center justify-center">
+              <Icon className="h-3 w-3 text-muted-foreground" />
+            </div>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
           </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{label}</div>
-          {renderPreview()}
-        </div>
+        )}
+        {isTextBlock ? renderInlineEditor() : renderPreview()}
       </div>
     </div>
   );
