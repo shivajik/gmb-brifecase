@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Type, Pilcrow, Image, Code, Minus, Settings2 } from "lucide-react";
+import { Search, Type, Pilcrow, Image, Code, Minus, Settings2, Columns } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,10 @@ const CONTENT_ELEMENTS = [
   { type: "spacer", label: "Spacer", description: "Vertical spacing between blocks", icon: Minus },
 ] as const;
 
+const LAYOUT_ELEMENTS = [
+  { type: "row", label: "Row / Columns", description: "Multi-column layout with preset options", icon: Columns },
+] as const;
+
 const COMPONENT_NAMES = Object.keys(COMPONENT_REGISTRY);
 
 export function ElementPickerModal({ open, onClose, onSelect }: ElementPickerModalProps) {
@@ -32,6 +36,10 @@ export function ElementPickerModal({ open, onClose, onSelect }: ElementPickerMod
   const q = search.toLowerCase();
 
   const filteredContent = CONTENT_ELEMENTS.filter(
+    (el) => el.label.toLowerCase().includes(q) || el.description.toLowerCase().includes(q)
+  );
+
+  const filteredLayout = LAYOUT_ELEMENTS.filter(
     (el) => el.label.toLowerCase().includes(q) || el.description.toLowerCase().includes(q)
   );
 
@@ -66,6 +74,28 @@ export function ElementPickerModal({ open, onClose, onSelect }: ElementPickerMod
         </div>
 
         <div className="overflow-y-auto flex-1 space-y-4 py-2">
+          {/* Layout Elements */}
+          {filteredLayout.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                Layout
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {filteredLayout.map((el) => (
+                  <button
+                    key={el.type}
+                    onClick={() => handleSelect(el.type)}
+                    className="flex flex-col items-center gap-2 p-4 rounded-lg border border-border bg-card hover:border-primary hover:bg-accent/50 transition-colors text-center group"
+                  >
+                    <el.icon className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <span className="text-sm font-medium text-foreground">{el.label}</span>
+                    <span className="text-xs text-muted-foreground leading-tight">{el.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Content Elements */}
           {filteredContent.length > 0 && (
             <div>
@@ -115,7 +145,7 @@ export function ElementPickerModal({ open, onClose, onSelect }: ElementPickerMod
             </div>
           )}
 
-          {filteredContent.length === 0 && filteredComponents.length === 0 && (
+          {filteredLayout.length === 0 && filteredContent.length === 0 && filteredComponents.length === 0 && (
             <p className="text-center text-muted-foreground text-sm py-8">No elements match your search.</p>
           )}
         </div>
