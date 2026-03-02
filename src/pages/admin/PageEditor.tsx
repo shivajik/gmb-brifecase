@@ -320,6 +320,11 @@ export default function PageEditor() {
                       <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="default">Default</SelectItem>
+                        <SelectItem value="home">Home</SelectItem>
+                        <SelectItem value="features">Features</SelectItem>
+                        <SelectItem value="pricing">Pricing</SelectItem>
+                        <SelectItem value="about">About</SelectItem>
+                        <SelectItem value="contact">Contact</SelectItem>
                         <SelectItem value="full-width">Full Width</SelectItem>
                         <SelectItem value="landing">Landing Page</SelectItem>
                       </SelectContent>
