@@ -64,6 +64,7 @@ export function RichTextEditor({
   const [fullscreen, setFullscreen] = useState(false);
   const isInternalUpdate = useRef(false);
 
+  // Only sync external value changes into the contentEditable — skip if we just typed
   useEffect(() => {
     if (!htmlMode && editorRef.current && !isInternalUpdate.current) {
       if (editorRef.current.innerHTML !== value) {
@@ -72,6 +73,15 @@ export function RichTextEditor({
     }
     isInternalUpdate.current = false;
   }, [value, htmlMode]);
+
+  // Set initial content on mount (replaces dangerouslySetInnerHTML)
+  const initializedRef = useRef(false);
+  useEffect(() => {
+    if (!htmlMode && editorRef.current && !initializedRef.current) {
+      editorRef.current.innerHTML = value || "";
+      initializedRef.current = true;
+    }
+  }, [htmlMode]);
 
   useEffect(() => {
     if (htmlMode && !isInternalUpdate.current) {
@@ -287,7 +297,6 @@ export function RichTextEditor({
           className="px-3 py-2 text-sm outline-none prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline flex-1 overflow-y-auto"
           style={{ minHeight }}
           data-placeholder={placeholder}
-          dangerouslySetInnerHTML={{ __html: value || "" }}
         />
       )}
     </div>

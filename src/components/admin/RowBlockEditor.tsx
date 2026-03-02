@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Plus, Trash2, GripVertical, Columns, Settings2, Type, Pilcrow, Image, Code, Minus } from "lucide-react";
+import { Plus, Trash2, Columns, Settings2, Type, Pilcrow, Image, Code, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/admin/RichTextEditor";
+import { ElementPickerModal } from "@/components/admin/ElementPickerModal";
 import { type ContentBlock, type ColumnData, ROW_LAYOUTS } from "@/hooks/useCmsPages";
 import { getComponentSchema } from "@/components/cms/ComponentPropSchemas";
 
@@ -22,16 +23,7 @@ const BLOCK_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>
   component: Settings2,
 };
 
-/** Quick-add element types for inside columns */
-const QUICK_ADD = [
-  { type: "heading", label: "Heading", icon: Type },
-  { type: "paragraph", label: "Text", icon: Pilcrow },
-  { type: "image", label: "Image", icon: Image },
-  { type: "html", label: "HTML", icon: Code },
-  { type: "spacer", label: "Spacer", icon: Minus },
-] as const;
-
-function newBlock(type: ContentBlock["type"]): ContentBlock {
+function newBlock(type: ContentBlock["type"], componentName?: string): ContentBlock {
   const id = crypto.randomUUID();
   const defaults: Record<string, Record<string, unknown>> = {
     heading: { text: "", level: "h2" },
@@ -39,6 +31,7 @@ function newBlock(type: ContentBlock["type"]): ContentBlock {
     image: { url: "", alt: "", caption: "" },
     html: { code: "" },
     spacer: { height: 40 },
+    component: { component: componentName || "" },
   };
   return { id, type, data: defaults[type] || {} };
 }
@@ -57,29 +50,28 @@ function colSpanClass(span: number): string {
 }
 
 export function RowBlockEditor({ columns, layout, onUpdate, onOpenBlockSettings }: RowBlockEditorProps) {
-  const [addMenuCol, setAddMenuCol] = useState<string | null>(null);
+  const [pickerColId, setPickerColId] = useState<string | null>(null);
 
   const changeLayout = (newLayout: string) => {
     const preset = ROW_LAYOUTS.find((l) => l.value === newLayout);
     if (!preset) return;
 
-    // Redistribute existing blocks into new column count
     const allBlocks = columns.flatMap((c) => c.blocks);
     const newCols: ColumnData[] = preset.columns.map((span, i) => ({
       id: crypto.randomUUID(),
       span,
-      blocks: i === 0 ? allBlocks : [], // dump all blocks into first column
+      blocks: i === 0 ? allBlocks : [],
     }));
     onUpdate({ layout: newLayout, columns: newCols });
   };
 
-  const addBlockToColumn = (colId: string, type: ContentBlock["type"]) => {
-    const block = newBlock(type);
+  const addBlockToColumn = (colId: string, type: string, componentName?: string) => {
+    const block = newBlock(type as ContentBlock["type"], componentName);
     const newCols = columns.map((c) =>
       c.id === colId ? { ...c, blocks: [...c.blocks, block] } : c
     );
     onUpdate({ columns: newCols });
-    setAddMenuCol(null);
+    setPickerColId(null);
   };
 
   const updateBlockInColumn = (colId: string, blockId: string, data: Record<string, unknown>) => {
@@ -137,42 +129,31 @@ export function RowBlockEditor({ columns, layout, onUpdate, onOpenBlockSettings 
               ))}
             </div>
 
-            {/* Add element to column */}
-            <div className="mt-2 relative">
-              {addMenuCol === col.id ? (
-                <div className="flex flex-wrap gap-1 p-1 bg-card border border-border rounded-md">
-                  {QUICK_ADD.map((el) => (
-                    <button
-                      key={el.type}
-                      onClick={() => addBlockToColumn(col.id, el.type as ContentBlock["type"])}
-                      className="flex items-center gap-1 px-2 py-1 text-[10px] rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                      title={el.label}
-                    >
-                      <el.icon className="h-3 w-3" />
-                      {el.label}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setAddMenuCol(null)}
-                    className="px-2 py-1 text-[10px] text-muted-foreground hover:text-foreground"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full h-6 text-[10px] text-muted-foreground"
-                  onClick={() => setAddMenuCol(col.id)}
-                >
-                  <Plus className="h-3 w-3 mr-1" /> Add
-                </Button>
-              )}
+            {/* Add element to column — opens full picker */}
+            <div className="mt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full h-6 text-[10px] text-muted-foreground"
+                onClick={() => setPickerColId(col.id)}
+              >
+                <Plus className="h-3 w-3 mr-1" /> Add
+              </Button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Full element picker modal for adding to columns */}
+      <ElementPickerModal
+        open={!!pickerColId}
+        onClose={() => setPickerColId(null)}
+        onSelect={(type, componentName) => {
+          if (pickerColId) {
+            addBlockToColumn(pickerColId, type, componentName);
+          }
+        }}
+      />
     </div>
   );
 }
@@ -220,7 +201,7 @@ function ColumnBlock({
           minHeight={40}
         />
       ) : (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer" onClick={onEdit}>
           <Icon className="h-3 w-3" />
           <span className="truncate">
             {block.type === "component"
