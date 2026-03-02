@@ -84,3 +84,19 @@ export function useDeleteWidget() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["cms-widgets"] }),
   });
 }
+
+export function useReorderWidgets() {
+  const { token } = useCmsAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (items: { id: string; sort_order: number }[]) => {
+      const { error } = await supabase.functions.invoke("cms-widgets", {
+        method: "POST",
+        body: { action: "reorder", items },
+        headers: authHeaders(token),
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["cms-widgets"] }),
+  });
+}

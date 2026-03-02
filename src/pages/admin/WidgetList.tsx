@@ -1,13 +1,31 @@
 import { useState } from "react";
-import { useCmsWidgets, useCreateWidget, useUpdateWidget, useDeleteWidget, CmsWidget } from "@/hooks/useCmsWidgets";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useCmsWidgets, useCreateWidget, useUpdateWidget, useDeleteWidget, useReorderWidgets, CmsWidget } from "@/hooks/useCmsWidgets";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Box } from "lucide-react";
+import { Plus, Pencil, Trash2, Box, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { WidgetContentEditor } from "@/components/widgets/WidgetContentEditor";
 
@@ -45,16 +63,98 @@ const emptyForm: WidgetFormData = {
   content: {},
 };
 
+// ─── Sortable Widget Card ────────────────────────────────────────────
+
+function SortableWidgetCard({
+  widget,
+  onEdit,
+  onDelete,
+}: {
+  widget: CmsWidget;
+  onEdit: (w: CmsWidget) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: widget.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card ref={setNodeRef} style={style} className="border-border">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div className="flex items-center gap-3">
+          <button
+            className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <div className={`w-2 h-2 rounded-full ${widget.active ? "bg-green-500" : "bg-muted-foreground/30"}`} />
+          <CardTitle className="text-base">{widget.title || "Untitled"}</CardTitle>
+          <span className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">{widget.widget_type}</span>
+          <span className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">{widget.location}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => onEdit(widget)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => onDelete(widget.id)}>
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      </CardHeader>
+    </Card>
+  );
+}
+
+// ─── Main Widget List ────────────────────────────────────────────────
+
 export default function WidgetList() {
   const { data: widgets, isLoading } = useCmsWidgets();
   const createWidget = useCreateWidget();
   const updateWidget = useUpdateWidget();
   const deleteWidget = useDeleteWidget();
+  const reorderWidgets = useReorderWidgets();
   const { toast } = useToast();
 
   const [editingWidget, setEditingWidget] = useState<CmsWidget | null>(null);
   const [formData, setFormData] = useState<WidgetFormData>(emptyForm);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [localOrder, setLocalOrder] = useState<CmsWidget[] | null>(null);
+
+  const displayWidgets = localOrder ?? widgets ?? [];
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !displayWidgets.length) return;
+
+    const oldIndex = displayWidgets.findIndex((w) => w.id === active.id);
+    const newIndex = displayWidgets.findIndex((w) => w.id === over.id);
+    const reordered = arrayMove(displayWidgets, oldIndex, newIndex);
+
+    setLocalOrder(reordered);
+
+    const items = reordered.map((w, i) => ({ id: w.id, sort_order: i }));
+    reorderWidgets.mutate(items, {
+      onSuccess: () => {
+        setLocalOrder(null);
+        toast({ title: "Widget order saved" });
+      },
+      onError: () => {
+        setLocalOrder(null);
+        toast({ title: "Failed to save order", variant: "destructive" });
+      },
+    });
+  };
 
   const openCreate = () => {
     setEditingWidget(null);
@@ -113,7 +213,7 @@ export default function WidgetList() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Widgets</h1>
-          <p className="text-muted-foreground mt-1">Manage reusable content blocks across your site.</p>
+          <p className="text-muted-foreground mt-1">Drag to reorder. Manage reusable content blocks across your site.</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" /> New Widget
@@ -122,7 +222,7 @@ export default function WidgetList() {
 
       {isLoading ? (
         <p className="text-muted-foreground">Loading widgets…</p>
-      ) : !widgets?.length ? (
+      ) : !displayWidgets.length ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Box className="h-10 w-10 text-muted-foreground mb-3" />
@@ -130,28 +230,15 @@ export default function WidgetList() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {widgets.map((w) => (
-            <Card key={w.id} className="border-border">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${w.active ? "bg-green-500" : "bg-muted-foreground/30"}`} />
-                  <CardTitle className="text-base">{w.title || "Untitled"}</CardTitle>
-                  <span className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">{w.widget_type}</span>
-                  <span className="text-xs bg-muted px-2 py-0.5 rounded text-muted-foreground">{w.location}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => openEdit(w)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDelete(w.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={displayWidgets.map((w) => w.id)} strategy={verticalListSortingStrategy}>
+            <div className="grid gap-3">
+              {displayWidgets.map((w) => (
+                <SortableWidgetCard key={w.id} widget={w} onEdit={openEdit} onDelete={handleDelete} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -117,6 +117,17 @@ Deno.serve(async (req) => {
       return json({ message: "Deleted" });
     }
 
+    // Reorder widgets (bulk sort_order update)
+    if (body.action === "reorder") {
+      const items = body.items as { id: string; sort_order: number }[];
+      if (!Array.isArray(items)) return json({ error: "items array required" }, 400);
+      for (const item of items) {
+        const { error } = await db.from("widgets").update({ sort_order: item.sort_order }).eq("id", item.id);
+        if (error) throw error;
+      }
+      return json({ message: "Reordered" });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (err) {
     console.error("cms-widgets error:", err);
