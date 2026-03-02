@@ -67,17 +67,19 @@ function CmsBlock({ block }: { block: ContentBlock }) {
       const Tag = (block.data.level as string) || "h2";
       const HeadingTag = Tag as keyof JSX.IntrinsicElements;
       return (
-        <HeadingTag className="text-3xl font-bold text-foreground">
-          {block.data.text as string}
-        </HeadingTag>
+        <HeadingTag
+          className="text-3xl font-bold text-foreground"
+          dangerouslySetInnerHTML={{ __html: (block.data.text as string) || "" }}
+        />
       );
     }
 
     case "paragraph":
       return (
-        <p className="text-muted-foreground">
-          {block.data.text as string}
-        </p>
+        <div
+          className="text-muted-foreground prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline"
+          dangerouslySetInnerHTML={{ __html: (block.data.text as string) || "" }}
+        />
       );
 
     case "image":
