@@ -12,6 +12,40 @@ interface BulkResult {
   error?: string;
 }
 
+function normalizeContentForCms(blocks: any[]): any[] {
+  if (!blocks || blocks.length === 0) return [];
+
+  const firstBlock = blocks[0];
+
+  if (firstBlock?.data?.text !== undefined) {
+    return blocks;
+  }
+
+  const htmlParts: string[] = [];
+  for (const block of blocks) {
+    if (typeof block?.content === "string") {
+      htmlParts.push(block.content);
+    } else if (typeof block?.text === "string") {
+      const tag = block.type === "heading" ? `h${block.level || 2}` : "p";
+      htmlParts.push(`<${tag}>${block.text}</${tag}>`);
+    }
+  }
+
+  const combinedHtml = htmlParts.join("");
+
+  if (combinedHtml) {
+    return [
+      {
+        id: "simple-content",
+        type: "paragraph",
+        data: { text: combinedHtml },
+      },
+    ];
+  }
+
+  return blocks;
+}
+
 export default function BulkImport() {
   const { token } = useCmsAuth();
   const [jsonData, setJsonData] = useState("");
@@ -24,7 +58,7 @@ export default function BulkImport() {
       return;
     }
 
-    let posts;
+    let posts: Record<string, unknown>[];
     try {
       posts = JSON.parse(jsonData);
       if (!Array.isArray(posts)) throw new Error("Must be an array");
@@ -36,22 +70,63 @@ export default function BulkImport() {
     setLoading(true);
     setResults([]);
 
-    try {
-      const { data, error } = await supabase.functions.invoke("cms-posts", {
-        body: { action: "bulk_create", posts },
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    const importResults: BulkResult[] = [];
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+    for (const post of posts) {
+      try {
+        if (!post.title || !post.slug) {
+          importResults.push({
+            title: String(post.title || ""),
+            slug: String(post.slug || ""),
+            success: false,
+            error: "Title and slug required",
+          });
+          continue;
+        }
 
-      setResults(data.results || []);
-      toast.success(`Created ${data.created} posts, ${data.failed} failed`);
-    } catch (err: any) {
-      toast.error(err.message || "Import failed");
-    } finally {
-      setLoading(false);
+        const rawContent = (post.content as any[]) || [];
+        const normalizedContent = normalizeContentForCms(rawContent);
+
+        const { data, error } = await supabase.functions.invoke("cms-posts", {
+          body: {
+            action: "create",
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt || null,
+            content: normalizedContent,
+            featured_image: post.featured_image || null,
+            status: post.status || "published",
+            editor_mode: "simple",
+            category_id: post.category_id || null,
+            meta_title: post.meta_title || null,
+            meta_description: post.meta_description || null,
+          },
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        importResults.push({
+          title: String(post.title),
+          slug: String(post.slug),
+          success: true,
+        });
+      } catch (err: any) {
+        importResults.push({
+          title: String(post.title || ""),
+          slug: String(post.slug || ""),
+          success: false,
+          error: err.message || "Unknown error",
+        });
+      }
     }
+
+    setResults(importResults);
+    const created = importResults.filter((r) => r.success).length;
+    const failed = importResults.filter((r) => !r.success).length;
+    toast.success(`Created ${created} posts, ${failed} failed`);
+    setLoading(false);
   };
 
   return (
@@ -85,3 +160,5 @@ export default function BulkImport() {
     </div>
   );
 }
+
+

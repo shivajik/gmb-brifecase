@@ -40,11 +40,15 @@ export default function BlogPost() {
     );
   }
 
-  const isSimple = post.editor_mode === "simple";
-  const simpleHtml = isSimple
-    ? ((post.content as any[])?.[0]?.data?.text as string) || ""
-    : "";
+const contentBlocks = (post.content as any[]) || [];
 
+const isSimple = post.editor_mode === "simple";
+
+const simpleHtml =
+  isSimple && contentBlocks.length > 0
+    ? contentBlocks[0]?.data?.text || ""
+    : "";
+    
   return (
     <Layout>
       {/* Article header */}
