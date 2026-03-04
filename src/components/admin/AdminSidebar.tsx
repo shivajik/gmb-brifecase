@@ -1,6 +1,8 @@
 import {
   LayoutDashboard,
   FileText,
+  PenLine,
+  FolderOpen,
   Menu,
   Box,
   Image,
@@ -29,6 +31,8 @@ import { Button } from "@/components/ui/button";
 const mainItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Pages", url: "/admin/pages", icon: FileText },
+  { title: "Blog Posts", url: "/admin/posts", icon: PenLine },
+  { title: "Categories & Tags", url: "/admin/categories", icon: FolderOpen },
   { title: "Menus", url: "/admin/menus", icon: Menu },
   { title: "Widgets", url: "/admin/widgets", icon: Box },
   { title: "Media", url: "/admin/media", icon: Image },
