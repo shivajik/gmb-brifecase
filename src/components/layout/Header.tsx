@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown, MapPin } from "lucide-react";
@@ -107,6 +107,43 @@ function cmsToNavItems(items: PublicMenuItem[]): NavItem[] {
   });
 }
 
+// ─── Edge-aware positioning hook ─────────────────────────────────────
+
+function useEdgeAwarePosition(preferredWidth: number) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [style, setStyle] = useState<React.CSSProperties>({});
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const parent = el.offsetParent as HTMLElement | null;
+    if (!parent) return;
+
+    const parentRect = parent.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const panelWidth = Math.min(preferredWidth, viewportWidth - 32); // 16px margin each side
+
+    // Center the panel within the parent container
+    const parentCenter = parentRect.width / 2;
+    let left = parentCenter - panelWidth / 2;
+
+    // Clamp: check if panel goes beyond parent bounds (which maps to viewport for our container)
+    const panelLeftInViewport = parentRect.left + left;
+    const panelRightInViewport = panelLeftInViewport + panelWidth;
+
+    if (panelLeftInViewport < 16) {
+      left += 16 - panelLeftInViewport;
+    } else if (panelRightInViewport > viewportWidth - 16) {
+      left -= panelRightInViewport - (viewportWidth - 16);
+    }
+
+    setStyle({ left: `${left}px`, width: `${panelWidth}px` });
+  }, [preferredWidth]);
+
+  return { ref, style };
+}
+
 // ─── Mega Panel Components ───────────────────────────────────────────
 
 function MegaLinkCard({ link, onClose, variant }: { link: MegaLink; onClose: () => void; variant: "sidebar" | "card" }) {
@@ -142,8 +179,9 @@ function MegaLinkCard({ link, onClose, variant }: { link: MegaLink; onClose: () 
 }
 
 function ProductsMegaPanel({ data, onClose }: { data: { platform?: MegaLink[]; items: MegaLink[] }; onClose: () => void }) {
+  const { ref, style } = useEdgeAwarePosition(960);
   return (
-    <div className="absolute left-0 right-0 top-full mt-2 bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in overflow-auto max-h-[calc(100vh-5rem)]" style={{ animationDuration: "0.2s" }}>
+    <div ref={ref} className="absolute top-full mt-2 bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in overflow-auto max-h-[calc(100vh-5rem)]" style={{ animationDuration: "0.2s", ...style }}>
       <div className="py-8 px-6">
         <div className={cn(
           "grid gap-6",
@@ -180,8 +218,13 @@ function ProductsMegaPanel({ data, onClose }: { data: { platform?: MegaLink[]; i
 }
 
 function StandardMegaPanel({ data, title, onClose }: { data: { items: MegaLink[] }; title: string; onClose: () => void }) {
+  const { ref, style } = useEdgeAwarePosition(640);
   return (
-    <div className="absolute left-0 right-0 top-full mt-2 bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
+    <div
+      ref={ref}
+      className="absolute top-full mt-2 bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in"
+      style={{ animationDuration: "0.2s", ...style }}
+    >
       <div className="py-6 px-6">
         <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">{title}</div>
         <div className="grid grid-cols-2 gap-2">
