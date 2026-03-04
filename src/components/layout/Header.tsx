@@ -143,7 +143,7 @@ function MegaLinkCard({ link, onClose, variant }: { link: MegaLink; onClose: () 
 
 function ProductsMegaPanel({ data, onClose }: { data: { platform?: MegaLink[]; items: MegaLink[] }; onClose: () => void }) {
   return (
-    <div className="fixed left-1/2 -translate-x-1/2 top-[4.5rem] w-[960px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in overflow-auto max-h-[calc(100vh-5rem)]" style={{ animationDuration: "0.2s" }}>
+    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[960px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in overflow-auto max-h-[calc(100vh-5rem)]" style={{ animationDuration: "0.2s" }}>
       <div className="py-8 px-6">
         <div className={cn(
           "grid gap-6",
@@ -181,7 +181,7 @@ function ProductsMegaPanel({ data, onClose }: { data: { platform?: MegaLink[]; i
 
 function StandardMegaPanel({ data, title, onClose }: { data: { items: MegaLink[] }; title: string; onClose: () => void }) {
   return (
-    <div className="fixed left-1/2 -translate-x-1/2 top-[4.5rem] w-[640px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
+    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[640px] max-w-[calc(100vw-2rem)] bg-popover border border-border rounded-xl shadow-xl z-50 animate-fade-in" style={{ animationDuration: "0.2s" }}>
       <div className="py-6 px-6">
         <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">{title}</div>
         <div className="grid grid-cols-2 gap-2">
