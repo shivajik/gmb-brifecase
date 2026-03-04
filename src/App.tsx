@@ -27,6 +27,7 @@ import MenuEditor from "./pages/admin/MenuEditor";
 import WidgetList from "./pages/admin/WidgetList";
 import AppearanceSettings from "./pages/admin/AppearanceSettings";
 import SiteSettings from "./pages/admin/SiteSettings";
+import BulkImport from "./pages/admin/BulkImport";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,7 @@ const App = () => (
             <Route path="widgets" element={<WidgetList />} />
             <Route path="appearance" element={<AppearanceSettings />} />
             <Route path="settings" element={<SiteSettings />} />
+            <Route path="bulk-import" element={<BulkImport />} />
           </Route>
 
           {/* Dynamic CMS pages (catch-all before 404) */}

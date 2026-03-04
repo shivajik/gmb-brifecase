@@ -37,7 +37,7 @@ async function verifyJWT(token: string): Promise<Record<string, unknown> | null>
     const enc = new TextEncoder();
     const data = `${parts[0]}.${parts[1]}`;
     const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
-    const sigBytes = base64urlDecode(parts[2]);
+    const sigBytes = new Uint8Array(base64urlDecode(parts[2]).buffer as ArrayBuffer);
     const valid = await crypto.subtle.verify("HMAC", key, sigBytes, enc.encode(data));
     if (!valid) return null;
     const payload = JSON.parse(new TextDecoder().decode(base64urlDecode(parts[1])));
@@ -258,6 +258,59 @@ Deno.serve(async (req) => {
       const { error } = await db.from("posts").delete().eq("id", body.id);
       if (error) throw error;
       return json({ message: "Deleted" });
+    }
+
+    if (action === "bulk_create") {
+      const posts = body.posts as Array<{
+        title: string;
+        slug: string;
+        excerpt?: string;
+        content?: unknown[];
+        featured_image?: string;
+        status?: string;
+        editor_mode?: string;
+        category_id?: string;
+        meta_title?: string;
+        meta_description?: string;
+      }>;
+      if (!posts || !Array.isArray(posts) || posts.length === 0) {
+        return json({ error: "Posts array required" }, 400);
+      }
+
+      const results: { title: string; slug: string; success: boolean; error?: string }[] = [];
+
+      for (const post of posts) {
+        try {
+          if (!post.title || !post.slug) {
+            results.push({ title: post.title || "", slug: post.slug || "", success: false, error: "Title and slug required" });
+            continue;
+          }
+          const insertData: Record<string, unknown> = {
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt || null,
+            content: post.content || [],
+            featured_image: post.featured_image || null,
+            status: post.status || "published",
+            editor_mode: post.editor_mode || "simple",
+            category_id: post.category_id || null,
+            author_id: payload.sub,
+            meta_title: post.meta_title || null,
+            meta_description: post.meta_description || null,
+            published_at: new Date().toISOString(),
+          };
+          const { error: insertError } = await db.from("posts").insert(insertData).select().single();
+          if (insertError) {
+            results.push({ title: post.title, slug: post.slug, success: false, error: insertError.code === "23505" ? "Slug already exists" : insertError.message });
+          } else {
+            results.push({ title: post.title, slug: post.slug, success: true });
+          }
+        } catch (e: any) {
+          results.push({ title: post.title, slug: post.slug, success: false, error: e.message || "Unknown error" });
+        }
+      }
+
+      return json({ results, created: results.filter(r => r.success).length, failed: results.filter(r => !r.success).length });
     }
 
     // ── Categories CRUD ─────────────────────────────────────────────
