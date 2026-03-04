@@ -39,7 +39,7 @@ const solutionLinks: MegaLink[] = [
 ];
 
 const resourceLinks: MegaLink[] = [
-  { icon: "BookOpen", title: "Blog", desc: "Tips & strategies", href: "/about" },
+  { icon: "BookOpen", title: "Blog", desc: "Tips & strategies", href: "/blog" },
   { icon: "HelpCircle", title: "Help Center", desc: "Guides & documentation", href: "/contact" },
   { icon: "Users", title: "Community", desc: "Connect with other users", href: "/about" },
 ];
