@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.cms-pages]
 verify_jwt = false
+
+[functions.cms-posts]
+verify_jwt = false

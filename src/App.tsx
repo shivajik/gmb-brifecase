@@ -9,6 +9,8 @@ import Features from "./pages/Features";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
 import CmsPage from "./pages/CmsPage";
@@ -17,6 +19,9 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import PageList from "./pages/admin/PageList";
 import PageEditor from "./pages/admin/PageEditor";
+import PostList from "./pages/admin/PostList";
+import PostEditor from "./pages/admin/PostEditor";
+import CategoryTagManager from "./pages/admin/CategoryTagManager";
 import MenuList from "./pages/admin/MenuList";
 import MenuEditor from "./pages/admin/MenuEditor";
 import WidgetList from "./pages/admin/WidgetList";
@@ -39,6 +44,8 @@ const App = () => (
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
 
           {/* Admin routes */}
           <Route path="/admin/login" element={
@@ -55,6 +62,10 @@ const App = () => (
             <Route path="pages" element={<PageList />} />
             <Route path="pages/new" element={<PageEditor />} />
             <Route path="pages/:id" element={<PageEditor />} />
+            <Route path="posts" element={<PostList />} />
+            <Route path="posts/new" element={<PostEditor />} />
+            <Route path="posts/:id" element={<PostEditor />} />
+            <Route path="categories" element={<CategoryTagManager />} />
             <Route path="menus" element={<MenuList />} />
             <Route path="menus/:id" element={<MenuEditor />} />
             <Route path="widgets" element={<WidgetList />} />
