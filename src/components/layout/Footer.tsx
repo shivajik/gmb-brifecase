@@ -59,7 +59,7 @@ function useSocialSettings() {
   });
 }
 
-export function Footer() {
+export function Footer({ siteName = "GMB Briefcase", logoUrl = "" }: { siteName?: string; logoUrl?: string }) {
   const { data: footerMenus } = usePublicMenus("footer");
   const { data: socialLinks } = useSocialSettings();
 
@@ -92,10 +92,14 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2 space-y-4">
             <Link to="/" className="flex items-center gap-2 font-bold text-xl">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <MapPin className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span>GMB Briefcase</span>
+              {logoUrl ? (
+                <img src={logoUrl} alt={siteName} className="h-8 w-8 rounded-lg object-contain" />
+              ) : (
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <MapPin className="h-5 w-5 text-primary-foreground" />
+                </div>
+              )}
+              <span>{siteName}</span>
             </Link>
             <p className="text-sm opacity-70 max-w-xs">
               The all-in-one platform to manage, optimize, and grow your local business presence on Google.
@@ -135,7 +139,7 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-background/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs opacity-60">© 2026 GMB Briefcase. All rights reserved.</p>
+          <p className="text-xs opacity-60">© {new Date().getFullYear()} {siteName}. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <Link to="#" className="text-xs opacity-60 hover:opacity-100">Privacy Policy</Link>
             <Link to="#" className="text-xs opacity-60 hover:opacity-100">Terms of Service</Link>

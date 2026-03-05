@@ -245,7 +245,7 @@ function StandardMegaPanel({ data, title, onClose }: { data: { items: MegaLink[]
 
 // ─── Header Component ────────────────────────────────────────────────
 
-export function Header() {
+export function Header({ siteName = "GMB Briefcase", logoUrl = "" }: { siteName?: string; logoUrl?: string }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const location = useLocation();
@@ -283,10 +283,14 @@ export function Header() {
       <div className="container mx-auto max-w-7xl relative flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 font-bold text-xl text-foreground">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <MapPin className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span>GMB Briefcase</span>
+          {logoUrl ? (
+            <img src={logoUrl} alt={siteName} className="h-8 w-8 rounded-lg object-contain" />
+          ) : (
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <MapPin className="h-5 w-5 text-primary-foreground" />
+            </div>
+          )}
+          <span>{siteName}</span>
         </Link>
 
         {/* Desktop Nav */}
