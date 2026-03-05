@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Calendar, User, Tag, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,15 @@ import { Layout } from "@/components/layout/Layout";
 import { usePublicPosts } from "@/hooks/usePublicPosts";
 
 export default function Blog() {
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(
+    searchParams.get("category") || undefined
+  );
+
+  useEffect(() => {
+    const cat = searchParams.get("category");
+    if (cat) setSelectedCategory(cat);
+  }, [searchParams]);
   const { data, isLoading } = usePublicPosts(selectedCategory);
   const posts = data?.posts || [];
   const categories = data?.categories || [];
@@ -120,30 +128,43 @@ export default function Blog() {
           </div>
 
           {/* Sidebar */}
-          <aside className="w-full lg:w-64 shrink-0 space-y-6">
-            {/* Categories filter */}
-            <div>
-              <h3 className="text-sm font-semibold text-foreground mb-3">Categories</h3>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setSelectedCategory(undefined)}
-                  className={`w-full text-left text-sm px-3 py-1.5 rounded-md transition-colors ${
-                    !selectedCategory ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}
-                >
-                  All Posts
-                </button>
-                {categories.map((cat) => (
+          <aside className="w-full lg:w-72 shrink-0">
+            <div className="lg:sticky lg:top-20 space-y-6">
+              <div className="rounded-lg border border-border bg-card p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Categories</h3>
+                <div className="space-y-1">
                   <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
+                    onClick={() => { setSelectedCategory(undefined); setSearchParams({}); }}
                     className={`w-full text-left text-sm px-3 py-1.5 rounded-md transition-colors ${
-                      selectedCategory === cat.id ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      !selectedCategory ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
                     }`}
+                    data-testid="button-category-all"
                   >
-                    {cat.name}
+                    All Posts
                   </button>
-                ))}
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => { setSelectedCategory(cat.id); setSearchParams({ category: cat.id }); }}
+                      className={`w-full text-left text-sm px-3 py-1.5 rounded-md transition-colors ${
+                        selectedCategory === cat.id ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
+                      data-testid={`button-category-${cat.id}`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-5 text-center">
+                <h3 className="text-base font-semibold text-foreground mb-2">Ready to grow your local business?</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Optimize your Google Business Profile with GMB Briefcase.
+                </p>
+                <Button asChild size="sm" className="w-full">
+                  <Link to="/pricing" data-testid="link-sidebar-cta">Start Free Trial</Link>
+                </Button>
               </div>
             </div>
           </aside>
