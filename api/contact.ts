@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import nodemailer from "nodemailer";
+import "dotenv/config";
 
 function escapeHtml(str: string): string {
   return str

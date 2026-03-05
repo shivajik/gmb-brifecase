@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import "dotenv/config";
 
 export default defineConfig(({ mode }) => ({
   server: {
@@ -17,7 +18,8 @@ export default defineConfig(({ mode }) => ({
     {
       name: "api-contact",
       configureServer(server) {
-        server.middlewares.use("/api/contact", async (req, res) => {
+        server.middlewares.use(async (req, res, next) => {
+          if (req.url !== "/api/contact") return next();
           if (req.method !== "POST") {
             res.statusCode = 405;
             res.setHeader("Content-Type", "application/json");
