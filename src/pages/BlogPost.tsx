@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, User, Tag, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,85 @@ function injectHeadingIds(html: string, tocItems: TocItem[]): string {
   });
 }
 
+function transformFaqsToAccordion(container: HTMLElement) {
+  const headings = container.querySelectorAll('h2, h3, h4');
+  let faqSectionStart: Element | null = null;
+
+  headings.forEach((heading) => {
+    const text = heading.textContent?.trim().toLowerCase() || '';
+    if (text.includes('faq') || text.includes('frequently asked question') || text.includes('frequently asked questions')) {
+      faqSectionStart = heading;
+    }
+  });
+
+  if (!faqSectionStart) return;
+
+  const faqItems: { question: string; answer: string[] }[] = [];
+  let current: { question: string; answer: string[] } | null = null;
+  let sibling = (faqSectionStart as Element).nextElementSibling;
+
+  while (sibling) {
+    const tag = sibling.tagName.toLowerCase();
+    const text = sibling.textContent?.trim() || '';
+
+    if (tag === 'h2' && !text.toLowerCase().includes('faq') && !text.match(/^q\d/i)) break;
+
+    if ((tag === 'h3' || tag === 'h4') && text.match(/^q\d/i)) {
+      if (current) faqItems.push(current);
+      current = { question: text.replace(/^q\d+\.\s*/i, ''), answer: [] };
+    } else if (current && (tag === 'p' || tag === 'ul' || tag === 'ol')) {
+      let html = sibling.innerHTML;
+      html = html.replace(/^<strong>Ans:?\s*<\/strong>:?\s*/i, '');
+      html = html.replace(/^<span[^>]*><strong>Ans:?\s*<\/strong>:?\s*/i, '<span>');
+      current.answer.push(html);
+    }
+    sibling = sibling.nextElementSibling;
+  }
+  if (current && current.answer.length > 0) faqItems.push(current);
+
+  if (faqItems.length === 0) return;
+
+  let toRemove = (faqSectionStart as Element).nextElementSibling;
+  const elementsToRemove: Element[] = [];
+  while (toRemove) {
+    const tag = toRemove.tagName.toLowerCase();
+    const text = toRemove.textContent?.trim() || '';
+    if (tag === 'h2' && !text.toLowerCase().includes('faq') && !text.match(/^q\d/i)) break;
+    if ((tag === 'h3' || tag === 'h4') && text.match(/^q\d/i)) {
+      elementsToRemove.push(toRemove);
+    } else if (elementsToRemove.length > 0 && (tag === 'p' || tag === 'ul' || tag === 'ol')) {
+      elementsToRemove.push(toRemove);
+    }
+    toRemove = toRemove.nextElementSibling;
+  }
+
+  const accordion = document.createElement('div');
+  accordion.className = 'faq-accordion not-prose space-y-3 my-6';
+  accordion.setAttribute('data-testid', 'faq-accordion');
+
+  faqItems.forEach((item, idx) => {
+    const details = document.createElement('details');
+    details.className = 'faq-item group rounded-lg border border-border bg-card overflow-hidden';
+    details.setAttribute('data-testid', `faq-item-${idx}`);
+
+    const summary = document.createElement('summary');
+    summary.className = 'flex items-center justify-between gap-3 px-5 py-4 cursor-pointer text-foreground font-medium text-base hover:bg-muted/50 transition-colors list-none [&::-webkit-details-marker]:hidden';
+    summary.innerHTML = `<span>${item.question}</span><svg class="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-180" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+
+    const content = document.createElement('div');
+    content.className = 'px-5 pb-4 text-muted-foreground text-sm leading-relaxed border-t border-border pt-3';
+    content.innerHTML = item.answer.map(a => `<p class="mb-2 last:mb-0">${a}</p>`).join('');
+
+    details.appendChild(summary);
+    details.appendChild(content);
+    accordion.appendChild(details);
+  });
+
+  elementsToRemove.forEach(el => el.remove());
+
+  (faqSectionStart as Element).insertAdjacentElement('afterend', accordion);
+}
+
 export default function BlogPost() {
   const { slug } = useParams();
   const { data: post, isLoading, error } = usePublicPost(slug);
@@ -52,6 +131,12 @@ export default function BlogPost() {
   const recentPosts = (sidebarData?.posts || [])
     .filter((p) => p.slug !== slug)
     .slice(0, 5);
+
+  useEffect(() => {
+    if (contentRef.current && post) {
+      transformFaqsToAccordion(contentRef.current);
+    }
+  }, [post, slug]);
 
   if (isLoading) {
     return (
