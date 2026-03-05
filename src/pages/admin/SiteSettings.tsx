@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Globe, Share2, Code, Shield } from "lucide-react";
+import { Globe, Share2, Code, Shield, AlertCircle } from "lucide-react";
 
 interface GeneralForm {
   site_name: string;
@@ -104,7 +104,26 @@ export default function SiteSettings() {
     }));
   }, [advancedSettings]);
 
+  const [socialErrors, setSocialErrors] = useState<Partial<Record<keyof SocialForm, string>>>({});
+
+  const validateSocialLinks = (): boolean => {
+    const errors: Partial<Record<keyof SocialForm, string>> = {};
+    let valid = true;
+    for (const [key, value] of Object.entries(social) as [keyof SocialForm, string][]) {
+      if (value && !value.startsWith("https://")) {
+        errors[key] = "URL must start with https://";
+        valid = false;
+      }
+    }
+    setSocialErrors(errors);
+    return valid;
+  };
+
   const handleSave = async () => {
+    if (!validateSocialLinks()) {
+      toast({ title: "Please fix social link errors before saving", variant: "destructive" });
+      return;
+    }
     try {
       const allSettings = [
         ...Object.entries(general).map(([key, value]) => ({ key, group: "general", value: { v: value } })),
@@ -178,10 +197,21 @@ export default function SiteSettings() {
             <div key={key} className="space-y-2">
               <Label className="capitalize">{key}</Label>
               <Input
+                data-testid={`input-social-${key}`}
                 value={social[key]}
-                onChange={(e) => setSocial((f) => ({ ...f, [key]: e.target.value }))}
+                onChange={(e) => {
+                  setSocial((f) => ({ ...f, [key]: e.target.value }));
+                  if (socialErrors[key]) setSocialErrors((prev) => ({ ...prev, [key]: undefined }));
+                }}
                 placeholder={`https://${key}.com/...`}
+                className={socialErrors[key] ? "border-destructive" : ""}
               />
+              {socialErrors[key] && (
+                <p className="text-xs text-destructive flex items-center gap-1" data-testid={`error-social-${key}`}>
+                  <AlertCircle className="h-3 w-3" />
+                  {socialErrors[key]}
+                </p>
+              )}
             </div>
           ))}
         </CardContent>

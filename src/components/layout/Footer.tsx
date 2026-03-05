@@ -1,11 +1,12 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Twitter, Linkedin, Facebook, Youtube } from "lucide-react";
+import { MapPin, Twitter, Linkedin, Facebook, Youtube, Instagram } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePublicMenus, buildMenuTree } from "@/hooks/usePublicMenus";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-// ─── Fallback footer links ──────────────────────────────────────────
 const defaultFooterLinks: Record<string, { label: string; href: string }[]> = {
   Product: [
     { label: "GBP Management", href: "/features" },
@@ -28,15 +29,39 @@ const defaultFooterLinks: Record<string, { label: string; href: string }[]> = {
   ],
 };
 
-const socialLinks = [
-  { icon: Twitter, href: "#" },
-  { icon: Linkedin, href: "#" },
-  { icon: Facebook, href: "#" },
-  { icon: Youtube, href: "#" },
-];
+const socialIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+  twitter: Twitter,
+  linkedin: Linkedin,
+  facebook: Facebook,
+  youtube: Youtube,
+  instagram: Instagram,
+};
+
+function useSocialSettings() {
+  return useQuery({
+    queryKey: ["public-social-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("key, value")
+        .eq("group", "social");
+      if (error) throw error;
+      const result: Record<string, string> = {};
+      for (const row of data || []) {
+        const val = typeof row.value === "object" && row.value !== null && "v" in (row.value as Record<string, unknown>)
+          ? String((row.value as Record<string, unknown>).v ?? "")
+          : String(row.value ?? "");
+        if (val) result[row.key] = val;
+      }
+      return result;
+    },
+    staleTime: 60_000,
+  });
+}
 
 export function Footer() {
   const { data: footerMenus } = usePublicMenus("footer");
+  const { data: socialLinks } = useSocialSettings();
 
   // Build footer columns from CMS footer menus, or fall back to defaults
   const footerColumns = useMemo(() => {
@@ -116,11 +141,22 @@ export function Footer() {
             <Link to="#" className="text-xs opacity-60 hover:opacity-100">Terms of Service</Link>
           </div>
           <div className="flex items-center gap-3">
-            {socialLinks.map(({ icon: Icon, href }, i) => (
-              <a key={i} href={href} className="opacity-60 hover:opacity-100 transition-opacity">
-                <Icon className="h-4 w-4" />
-              </a>
-            ))}
+            {Object.entries(socialLinks || {}).map(([platform, url]) => {
+              const Icon = socialIconMap[platform];
+              if (!Icon || !url) return null;
+              return (
+                <a
+                  key={platform}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="opacity-60 hover:opacity-100 transition-opacity"
+                  data-testid={`link-social-${platform}`}
+                >
+                  <Icon className="h-4 w-4" />
+                </a>
+              );
+            })}
           </div>
         </div>
       </div>
