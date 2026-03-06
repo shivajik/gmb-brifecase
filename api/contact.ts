@@ -15,15 +15,56 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+const RATE_LIMIT_WINDOW = 60_000;
+const RATE_LIMIT_MAX = 5;
+const ipRequests = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = ipRequests.get(ip);
+  if (!entry || now > entry.resetAt) {
+    ipRequests.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT_MAX;
+}
+
+function setCorsHeaders(res: VercelResponse) {
+  const allowed = process.env.ALLOWED_ORIGIN || "*";
+  res.setHeader("Access-Control-Allow-Origin", allowed);
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setCorsHeaders(res);
+
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const clientIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || "unknown";
+  if (isRateLimited(clientIp)) {
+    return res.status(429).json({ error: "Too many requests. Please try again later." });
   }
 
   const { name, email, company, message } = req.body || {};
 
   if (!name || !email || !message) {
     return res.status(400).json({ error: "Name, email, and message are required." });
+  }
+
+  if (typeof name !== "string" || typeof email !== "string" || typeof message !== "string" || (company && typeof company !== "string")) {
+    return res.status(400).json({ error: "Invalid field types." });
+  }
+
+  if (name.length > 200 || email.length > 320 || (company && company.length > 200) || message.length > 5000) {
+    return res.status(400).json({ error: "One or more fields exceed the maximum length." });
   }
 
   if (!isValidEmail(email)) {

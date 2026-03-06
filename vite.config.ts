@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => ({
     {
       name: "api-contact",
       configureServer(server) {
+        const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
         server.middlewares.use(async (req, res, next) => {
           if (req.url !== "/api/contact") return next();
           if (req.method !== "POST") {
@@ -28,7 +31,13 @@ export default defineConfig(({ mode }) => ({
           }
 
           let body = "";
-          req.on("data", (chunk: Buffer) => { body += chunk.toString(); });
+          let size = 0;
+          const MAX_BODY = 50_000;
+          req.on("data", (chunk: Buffer) => {
+            size += chunk.length;
+            if (size > MAX_BODY) { req.destroy(); return; }
+            body += chunk.toString();
+          });
           req.on("end", async () => {
             try {
               const { name, email, company, message } = JSON.parse(body);
@@ -36,6 +45,20 @@ export default defineConfig(({ mode }) => ({
                 res.statusCode = 400;
                 res.setHeader("Content-Type", "application/json");
                 res.end(JSON.stringify({ error: "Name, email, and message are required." }));
+                return;
+              }
+
+              if (!isValidEmail(email)) {
+                res.statusCode = 400;
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ error: "Please provide a valid email address." }));
+                return;
+              }
+
+              if (name.length > 200 || email.length > 320 || (company && company.length > 200) || message.length > 5000) {
+                res.statusCode = 400;
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ error: "One or more fields exceed the maximum length." }));
                 return;
               }
 
@@ -57,19 +80,24 @@ export default defineConfig(({ mode }) => ({
                 auth: { user: adminEmail, pass: adminPass },
               });
 
+              const safeName = esc(name);
+              const safeEmail = esc(email);
+              const safeCompany = company ? esc(company) : "";
+              const safeMessage = esc(message);
+
               await transporter.sendMail({
                 from: adminEmail,
                 to: adminEmail,
                 replyTo: email,
-                subject: `New Contact Form Submission from ${name}`,
-                html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc;border-radius:8px;"><div style="background:#fff;padding:40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);"><h1 style="color:#16a34a;text-align:center;">GMB Briefcase</h1><div style="background:#f0fdf4;padding:16px;border-radius:6px;margin:20px 0;border-left:4px solid #16a34a;"><p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p>${company ? `<p><strong>Company:</strong> ${company}</p>` : ""}</div><h3 style="color:#16a34a;">Message:</h3><div style="background:#f9fafb;padding:16px;border-radius:6px;border:1px solid #e5e7eb;"><p style="white-space:pre-wrap;">${message}</p></div></div></div>`,
+                subject: `New Contact Form Submission from ${safeName}`,
+                html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc;border-radius:8px;"><div style="background:#fff;padding:40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);"><h1 style="color:#16a34a;text-align:center;">GMB Briefcase</h1><div style="background:#f0fdf4;padding:16px;border-radius:6px;margin:20px 0;border-left:4px solid #16a34a;"><p><strong>Name:</strong> ${safeName}</p><p><strong>Email:</strong> ${safeEmail}</p>${safeCompany ? `<p><strong>Company:</strong> ${safeCompany}</p>` : ""}</div><h3 style="color:#16a34a;">Message:</h3><div style="background:#f9fafb;padding:16px;border-radius:6px;border:1px solid #e5e7eb;"><p style="white-space:pre-wrap;">${safeMessage}</p></div></div></div>`,
               });
 
               await transporter.sendMail({
                 from: adminEmail,
                 to: email,
                 subject: "Thank you for contacting GMB Briefcase!",
-                html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc;border-radius:8px;"><div style="background:#fff;padding:40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);"><h1 style="color:#16a34a;text-align:center;">GMB Briefcase</h1><p>Hello <strong>${name}</strong>,</p><p>Thank you for reaching out! We'll get back to you within 24 hours.</p><div style="background:#f0fdf4;padding:16px;border-radius:6px;margin:20px 0;border-left:4px solid #16a34a;"><p style="color:#16a34a;font-weight:500;">Your message:</p><p style="white-space:pre-wrap;">${message}</p></div><p style="margin-bottom:5px;">Best regards,</p><p style="color:#16a34a;font-weight:500;">The GMB Briefcase Team</p></div></div>`,
+                html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc;border-radius:8px;"><div style="background:#fff;padding:40px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1);"><h1 style="color:#16a34a;text-align:center;">GMB Briefcase</h1><p>Hello <strong>${safeName}</strong>,</p><p>Thank you for reaching out! We'll get back to you within 24 hours.</p><div style="background:#f0fdf4;padding:16px;border-radius:6px;margin:20px 0;border-left:4px solid #16a34a;"><p style="color:#16a34a;font-weight:500;">Your message:</p><p style="white-space:pre-wrap;">${safeMessage}</p></div><p style="margin-bottom:5px;">Best regards,</p><p style="color:#16a34a;font-weight:500;">The GMB Briefcase Team</p></div></div>`,
               });
 
               res.statusCode = 200;
