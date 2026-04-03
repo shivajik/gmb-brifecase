@@ -19,7 +19,7 @@ const defaultFooterLinks: Record<string, { label: string; href: string }[]> = {
     { label: "About Us", href: "/about" },
     { label: "Contact", href: "/contact" },
     { label: "Careers", href: "/about" },
-    { label: "Blog", href: "/about" },
+    { label: "Blog", href: "/blog" },
   ],
   Support: [
     { label: "Help Center", href: "/contact" },

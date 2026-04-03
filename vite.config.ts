@@ -17,11 +17,11 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     {
       name: "api-contact",
-      configureServer(server) {
+      configureServer(server: any) {
         const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
-        server.middlewares.use(async (req, res, next) => {
+        server.middlewares.use(async (req: any, res: any, next: any) => {
           if (req.url !== "/api/contact") return next();
           if (req.method !== "POST") {
             res.statusCode = 405;
