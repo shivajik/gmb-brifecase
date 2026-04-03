@@ -1,0 +1,1 @@
+UPDATE menu_items SET url = '/blog' WHERE label = 'Blog' AND url = '/about' AND menu_id IN (SELECT id FROM menus WHERE location = 'footer');
