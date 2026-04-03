@@ -34,7 +34,7 @@ export function CTABanner({
               {ctaPrimaryText} <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
-          <Button size="lg" variant="outline" asChild className="text-base border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
+          <Button size="lg" variant="outline" asChild className="text-base border-white/40 text-white bg-white/10 hover:bg-white/20">
             <Link to={ctaSecondaryLink}>{ctaSecondaryText}</Link>
           </Button>
         </div>
