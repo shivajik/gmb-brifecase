@@ -298,17 +298,25 @@ export function Header({ siteName = "GMB Briefcase", logoUrl = "" }: { siteName?
           {navItems.map((item) => {
             const hasMega = !!getMegaData(item);
             return hasMega ? (
-              <button
+              <div
                 key={item.label}
-                className={cn(
-                  "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-colors hover:text-primary",
-                  activeMenu === item.label ? "text-primary" : "text-muted-foreground"
-                )}
+                className="relative"
                 onMouseEnter={() => setActiveMenu(item.label)}
               >
-                {item.label}
-                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", activeMenu === item.label && "rotate-180")} />
-              </button>
+                <button
+                  className={cn(
+                    "flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-colors hover:text-primary",
+                    activeMenu === item.label ? "text-primary" : "text-muted-foreground"
+                  )}
+                >
+                  {item.label}
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", activeMenu === item.label && "rotate-180")} />
+                </button>
+                {/* Invisible bridge to cover the gap between button and panel */}
+                {activeMenu === item.label && (
+                  <div className="absolute top-full left-0 w-full h-4" />
+                )}
+              </div>
             ) : (
               <Link
                 key={item.label}
