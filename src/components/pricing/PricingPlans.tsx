@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 
@@ -11,32 +11,78 @@ interface PricingPlan {
   desc: string;
   features: unknown[];
   popular?: boolean;
+  credits?: string;
 }
 
 const DEFAULT_PLANS: PricingPlan[] = [
   {
-    name: "Starter",
-    monthly: 49,
-    annual: 39,
-    desc: "Perfect for single-location businesses",
-    features: ["1 Location", "GBP Management", "Review Monitoring", "Basic Analytics", "Email Support", "Monthly Reports"],
-    popular: false,
-  },
-  {
-    name: "Professional",
+    name: "Business",
     monthly: 99,
     annual: 79,
-    desc: "Ideal for growing businesses & small agencies",
-    features: ["Up to 10 Locations", "Everything in Starter", "Listings Management", "AI Review Responses", "Competitor Analysis", "Priority Support", "Custom Reports"],
-    popular: true,
+    desc: "For single & small multi-location businesses",
+    features: [
+      "No.GMB Listing - 40",
+      "GMB Posts - Unlimited",
+      "Lead Generator",
+      "Reporting Automation",
+      "Review Automation",
+      "GMB AI Assistant",
+      "Geo-Grid Rank Tracking",
+      "Website Rank Tracking",
+      "Review Generation",
+      "Team & Client Access",
+      "Local Citation Tracking",
+      "Competitor Tracking",
+      { text: "White Label Subdomain", muted: true },
+    ],
+    popular: false,
+    credits: "GeoGrid - Rank tracking & Lead Generation - 5000 Credits",
   },
   {
-    name: "Enterprise",
-    monthly: 249,
-    annual: 199,
+    name: "Pro",
+    monthly: 199,
+    annual: 159,
+    desc: "Ideal for growing agencies & businesses",
+    features: [
+      "No.GMB Listing - 100",
+      "GMB Posts - Unlimited",
+      "Lead Generator",
+      "Reporting Automation",
+      "Review Automation",
+      "GMB AI Assistant",
+      "Geo-Grid Rank Tracking",
+      "Website Rank Tracking",
+      "Review Generation",
+      "Team & Client Access",
+      "Local Citation Tracking",
+      "Competitor Tracking",
+      "White Label Subdomain",
+    ],
+    popular: true,
+    credits: "GeoGrid - Rank tracking & Lead Generation - 10000 Credits",
+  },
+  {
+    name: "Agency",
+    monthly: 299,
+    annual: 239,
     desc: "For agencies & multi-location brands",
-    features: ["Unlimited Locations", "Everything in Professional", "White-Label Reports", "API Access", "Dedicated Account Manager", "Custom Integrations", "SLA Guarantee"],
+    features: [
+      "No.GMB Listing - 200",
+      "GMB Posts - Unlimited",
+      "Lead Generator",
+      "Reporting Automation",
+      "Review Automation",
+      "GMB AI Assistant",
+      "Geo-Grid Rank Tracking",
+      "Website Rank Tracking",
+      "Review Generation",
+      "Team & Client Access",
+      "Local Citation Tracking",
+      "Competitor Tracking",
+      "White Label Subdomain",
+    ],
     popular: false,
+    credits: "GeoGrid - Rank tracking & Lead Generation - 20000 Credits",
   },
 ];
 
@@ -46,16 +92,21 @@ interface PricingPlansProps {
   plans?: PricingPlan[];
 }
 
-function normalizeFeatures(features: unknown[]): string[] {
+interface FeatureItem {
+  text: string;
+  muted?: boolean;
+}
+
+function normalizeFeatures(features: unknown[]): FeatureItem[] {
   return features
     .map((feature) => {
-      if (typeof feature === "string") return feature;
+      if (typeof feature === "string") return { text: feature };
       if (feature && typeof feature === "object" && "text" in feature && typeof (feature as { text?: unknown }).text === "string") {
-        return (feature as { text: string }).text;
+        return { text: (feature as { text: string }).text, muted: !!(feature as { muted?: boolean }).muted };
       }
-      return "";
+      return null;
     })
-    .filter(Boolean);
+    .filter(Boolean) as FeatureItem[];
 }
 
 function toPrice(value: unknown): number {
@@ -68,7 +119,7 @@ export function PricingPlans({
   subtitle = "Start free. Scale as you grow. No hidden fees.",
   plans,
 }: PricingPlansProps) {
-  const [annual, setAnnual] = useState(true);
+  const [annual, setAnnual] = useState(false);
 
   const displayPlans = (Array.isArray(plans) && plans.length > 0 ? plans : DEFAULT_PLANS).map((plan) => ({
     ...plan,
@@ -91,36 +142,65 @@ export function PricingPlans({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {displayPlans.map((plan) => (
-            <div key={plan.name} className={cn(
-              "relative rounded-2xl border bg-card p-8 text-left transition-all hover:shadow-lg",
-              plan.popular ? "border-primary shadow-md scale-105" : "border-border"
-            )}>
-              {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs font-bold px-4 py-1 rounded-full">
-                  Most Popular
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+          {displayPlans.map((plan) => {
+            const price = annual ? toPrice(plan.annual) : toPrice(plan.monthly);
+            return (
+              <div key={plan.name} className={cn(
+                "relative flex flex-col rounded-2xl border bg-card p-8 text-left transition-all hover:shadow-lg",
+                plan.popular ? "border-primary border-2 shadow-lg md:scale-105 z-10" : "border-border"
+              )}>
+                {/* Plan name */}
+                <h3 className={cn(
+                  "text-xl font-bold text-center mb-4",
+                  plan.popular ? "text-primary" : "text-card-foreground"
+                )}>
+                  {plan.name}
+                </h3>
+
+                {/* Price */}
+                <div className="text-center mb-8">
+                  <span className="text-5xl font-bold text-foreground">${price}</span>
+                  <span className="text-muted-foreground text-base">/month</span>
                 </div>
-              )}
-              <h3 className="text-xl font-bold text-card-foreground">{plan.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1 mb-4">{plan.desc}</p>
-              <div className="mb-6">
-                <span className="text-4xl font-bold text-foreground">${annual ? toPrice(plan.annual) : toPrice(plan.monthly)}</span>
-                <span className="text-muted-foreground">/mo</span>
+
+                {/* Features */}
+                <ul className="space-y-3 flex-1 mb-8">
+                  {plan.features.map((feature) => (
+                    <li key={`${plan.name}-${feature.text}`} className="flex items-center gap-2.5 text-sm">
+                      <Check className={cn(
+                        "h-4 w-4 shrink-0",
+                        feature.muted ? "text-muted-foreground/50" : "text-primary"
+                      )} />
+                      <span className={cn(
+                        plan.popular ? "font-semibold text-foreground" : "text-foreground",
+                        feature.muted && "text-muted-foreground italic"
+                      )}>
+                        {feature.text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA Button */}
+                <Button
+                  className={cn("w-full rounded-full py-5 text-base font-semibold")}
+                  variant={plan.popular ? "default" : "outline"}
+                  asChild
+                >
+                  <Link to="/contact">Purchase now</Link>
+                </Button>
+
+                {/* Credits info */}
+                {plan.credits && (
+                  <p className="text-xs text-center text-muted-foreground mt-4 leading-relaxed">
+                    You will get following monthly credits:<br />
+                    <span className="font-medium">{plan.credits}</span>
+                  </p>
+                )}
               </div>
-              <Button className="w-full mb-6" variant={plan.popular ? "default" : "outline"} asChild>
-                <Link to="/contact">Start Free Trial</Link>
-              </Button>
-              <ul className="space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={`${plan.name}-${feature}`} className="flex items-center gap-2 text-sm text-foreground">
-                    <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
