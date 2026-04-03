@@ -151,15 +151,15 @@ function MegaLinkCard({ link, onClose, variant }: { link: MegaLink; onClose: () 
 
   if (variant === "sidebar") {
     return (
-      <Link to={link.href} onClick={onClose} className="flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-accent">
+      <Link to={link.href} onClick={onClose} className="flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-primary hover:text-primary-foreground group/sidebar">
         {Icon && (
-          <div className="mt-0.5 rounded-md bg-primary/10 p-2">
-            <Icon className="h-5 w-5 text-primary" />
+          <div className="mt-0.5 rounded-md bg-primary/10 p-2 group-hover/sidebar:bg-primary-foreground/20">
+            <Icon className="h-5 w-5 text-primary group-hover/sidebar:text-primary-foreground" />
           </div>
         )}
         <div>
-          <div className="font-medium text-sm text-foreground">{link.title}</div>
-          <div className="text-xs text-muted-foreground leading-relaxed">{link.desc}</div>
+          <div className="font-medium text-sm text-foreground group-hover/sidebar:text-primary-foreground">{link.title}</div>
+          <div className="text-xs text-muted-foreground leading-relaxed group-hover/sidebar:text-primary-foreground/80">{link.desc}</div>
         </div>
       </Link>
     );
